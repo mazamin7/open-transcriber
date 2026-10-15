@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Audio recording for live on-device speech-to-text -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Haptic vibration when speech resumes after pause -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Keeps screen on continuously during conversations -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!--
+      NOTICE: android.permission.INTERNET is deliberately OMITTED.
+      The Android OS guarantees this app cannot access the internet,
+      ensuring 100% air-gapped private communication for you and your partner.
+    -->
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.LiveTranscribeOffline">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
