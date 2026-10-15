@@ -65,15 +65,15 @@ Android Access:    http://192.168.1.X:3000
 
 ---
 
-## 🎙️ Enabling Offline Speech Recognition on Android
+## 🎙️ Enabling Offline Italian Speech Recognition on Android
 
-Android includes built-in offline speech recognition models so transcription works without internet:
+Android includes built-in offline Italian speech recognition models so transcription works completely offline without internet:
 
-1. Open your Android phone's **Settings**.
-2. Go to **System** ➔ **Languages & input** ➔ **Voice input** (or search for *"Speech Services by Google"* or *"Samsung Voice input"*).
-3. Tap **Offline speech recognition**.
-4. In the **"All"** tab, tap your language (e.g., *English (US)*) to download the offline language pack (typically ~50MB).
-5. Once downloaded, your phone's browser will transcribe speech locally with zero internet access!
+1. Open your Android phone's **Settings** (*Impostazioni*).
+2. Go to **System** (*Sistema*) ➔ **Languages & input** (*Lingue e inserimento*) ➔ **Voice input** (*Digitazione vocale* / *Riconoscimento vocale*).
+3. Tap **Offline speech recognition** (*Riconoscimento vocale offline*).
+4. In the **"All"** (*Tutte*) tab, tap **Italiano (Italia)** to download the offline language pack (~50MB).
+5. Once downloaded, your phone will transcribe speech in Italian 100% offline with zero internet access!
 
 ---
 

@@ -1,7 +1,7 @@
 /**
  * Two-Way Deaf Communication Module
  * Reconstructs Google Live Transcribe's Type-Back interface,
- * 180° Table-Flip facing partner mode, and offline Text-To-Speech.
+ * 180° Table-Flip facing partner mode, and offline Text-To-Speech with Italian support.
  */
 class TwoWayCommunication {
   constructor(options = {}) {
@@ -12,16 +12,16 @@ class TwoWayCommunication {
     this.ttsPitch = 1.0;
     this.ttsRate = 1.0;
 
-    // Default quick response chips for deaf-hearing communication
+    // Default quick response chips for deaf-hearing communication (in Italian)
     this.defaultChips = [
-      "Yes",
+      "Sì",
       "No",
-      "Thank you!",
-      "Please repeat that",
-      "I am deaf, please speak clearly",
-      "Give me a moment to type",
-      "Can you write it down?",
-      "I understand"
+      "Grazie!",
+      "Puoi ripetere?",
+      "Sono sorda, per favore parla chiaro",
+      "Dammi un attimo per scrivere",
+      "Ho capito",
+      "Puoi parlare più lentamente?"
     ];
 
     this.customChips = this.loadCustomChips();
@@ -29,7 +29,7 @@ class TwoWayCommunication {
 
   loadCustomChips() {
     try {
-      const stored = localStorage.getItem('deaf_quick_chips');
+      const stored = localStorage.getItem('deaf_quick_chips_it');
       if (stored) {
         return JSON.parse(stored);
       }
@@ -41,7 +41,7 @@ class TwoWayCommunication {
 
   saveCustomChips() {
     try {
-      localStorage.setItem('deaf_quick_chips', JSON.stringify(this.customChips));
+      localStorage.setItem('deaf_quick_chips_it', JSON.stringify(this.customChips));
     } catch (e) {
       console.warn('[TwoWayComm] Could not save custom chips:', e);
     }
@@ -84,9 +84,9 @@ class TwoWayCommunication {
 
   /**
    * Offline Text-To-Speech (TTS)
-   * Uses local device SpeechSynthesis voices (100% offline, zero network requests).
+   * Uses local device SpeechSynthesis Italian voice (100% offline, zero network requests).
    */
-  speakText(text, lang = 'en-US') {
+  speakText(text, lang = 'it-IT') {
     if (!text || !text.trim()) return false;
     if (!('speechSynthesis' in window)) {
       console.warn('[TwoWayComm] SpeechSynthesis not supported in this environment');
@@ -101,14 +101,14 @@ class TwoWayCommunication {
     utterance.pitch = this.ttsPitch;
     utterance.rate = this.ttsRate;
 
-    // Pick a local offline voice if available
+    // Pick an Italian local offline voice if available
     const voices = window.speechSynthesis.getVoices();
-    const localVoice = voices.find(v => v.lang.startsWith(lang.slice(0, 2)) && v.localService) ||
-                       voices.find(v => v.lang.startsWith(lang.slice(0, 2))) ||
-                       voices[0];
+    const italianVoice = voices.find(v => v.lang.startsWith('it') && v.localService) ||
+                         voices.find(v => v.lang.startsWith('it')) ||
+                         voices[0];
 
-    if (localVoice) {
-      utterance.voice = localVoice;
+    if (italianVoice) {
+      utterance.voice = italianVoice;
     }
 
     window.speechSynthesis.speak(utterance);

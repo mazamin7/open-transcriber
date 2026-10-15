@@ -11,7 +11,6 @@ import android.os.VibratorManager
 import android.speech.tts.TextToSpeech
 import android.view.View
 import android.view.WindowManager
-import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -22,7 +21,6 @@ import org.vosk.LibVosk
 import org.vosk.LogLevel
 import org.vosk.Model
 import org.vosk.android.StorageService
-import java.io.IOException
 import java.util.Locale
 
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
@@ -40,14 +38,16 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private val fullTranscript = StringBuilder()
     private val RECORD_AUDIO_REQUEST_CODE = 101
 
+    // Quick Response Chips for Deaf Communication in Italian
     private val quickChips = listOf(
-        "Yes",
+        "Sì",
         "No",
-        "Thank you!",
-        "Please repeat that",
-        "I am deaf, please speak clearly",
-        "Give me a moment to type",
-        "I understand"
+        "Grazie!",
+        "Puoi ripetere?",
+        "Sono sorda, parla chiaro",
+        "Dammi un attimo per scrivere",
+        "Ho capito",
+        "Puoi parlare più lentamente?"
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,10 +55,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Keep screen on continuously during conversations
+        // Keep screen awake continuously during live conversations
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // Initialize Text-To-Speech
+        // Initialize Text-To-Speech with Italian voice
         tts = TextToSpeech(this, this)
 
         // Setup Quick Response Chips
@@ -67,7 +67,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         // Setup Click Listeners
         setupListeners()
 
-        // Initialize Vosk Model (unpacks model from assets asynchronously)
+        // Initialize Vosk Model (unpacks Italian model from assets)
         LibVosk.setLogLevel(LogLevel.INFO)
         initVoskModel()
     }
@@ -100,7 +100,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             binding.typeBackCard.visibility = View.GONE
         }
 
-        // 180° Table-Flip Mode for facing hearing partner across the table
+        // 180° Table-Flip Mode: Rotates response upside down for partner facing her across the table
         binding.btnFlip180.setOnClickListener {
             isFlipped = !isFlipped
             binding.flipContainer.rotation = if (isFlipped) 180f else 0f
@@ -110,7 +110,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             )
         }
 
-        // Offline Text-To-Speech Button
+        // Offline Text-To-Speech Button (Italian)
         binding.btnSpeakTts.setOnClickListener {
             val text = binding.etTypeBack.text.toString().trim()
             if (text.isNotEmpty()) {
@@ -155,18 +155,30 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun initVoskModel() {
-        binding.tvSoundEvent.text = "Loading Model..."
+        binding.tvSoundEvent.text = "Caricamento modello..."
+        // Looks for Italian model 'model-it' first, then 'model'
         StorageService.unpack(
             this,
-            "model-en-us",
+            "model-it",
             "model",
             { model ->
                 this.voskModel = model
                 binding.tvSoundEvent.text = getString(R.string.sound_silence)
             },
-            { exception ->
-                binding.tvSoundEvent.text = "Ready (System STT)"
-                // Will fall back to Android on-device recognizer if model asset not bundled
+            { _ ->
+                // Try fallback to default 'model' if 'model-it' wasn't renamed
+                StorageService.unpack(
+                    this,
+                    "model",
+                    "model",
+                    { fallbackModel ->
+                        this.voskModel = fallbackModel
+                        binding.tvSoundEvent.text = getString(R.string.sound_silence)
+                    },
+                    { _ ->
+                        binding.tvSoundEvent.text = "Pronto (STT di sistema)"
+                    }
+                )
             }
         )
     }
@@ -195,7 +207,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 startListening()
             } else {
-                Toast.makeText(this, "Microphone permission is required for live transcription.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Permesso microfono necessario per la trascrizione.", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -203,7 +215,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private fun startListening() {
         val model = voskModel
         if (model == null) {
-            Toast.makeText(this, "Speech model loading. Please wait a moment...", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Modello vocale in caricamento, attendere qualche secondo...", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -233,11 +245,20 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
 
             override fun onAcousticEvent(event: String) {
-                binding.tvSoundEvent.text = event
+                // Localized Italian acoustic events
+                val italianEvent = when (event) {
+                    "Speech" -> getString(R.string.sound_speech)
+                    "Silence" -> getString(R.string.sound_silence)
+                    "Loud Noise" -> getString(R.string.sound_loud)
+                    "Applause" -> getString(R.string.sound_applause)
+                    "Music" -> getString(R.string.sound_music)
+                    else -> event
+                }
+                binding.tvSoundEvent.text = italianEvent
             }
 
             override fun onError(error: Exception) {
-                Toast.makeText(this@MainActivity, "Audio error: ${error.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@MainActivity, "Errore audio: ${error.message}", Toast.LENGTH_SHORT).show()
                 stopListening()
             }
         })
@@ -282,7 +303,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private fun appendReplyToTranscript(text: String) {
         binding.tvEmptyPrompt.visibility = View.GONE
-        fullTranscript.append("\n[Reply]: ").append(text).append("\n\n")
+        fullTranscript.append("\n[Risposta]: ").append(text).append("\n\n")
         binding.tvTranscript.text = fullTranscript.toString()
         scrollToBottom()
     }
@@ -299,7 +320,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            tts?.language = Locale.getDefault()
+            // Set Italian language for offline TTS
+            val result = tts?.setLanguage(Locale.ITALIAN)
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                tts?.language = Locale.getDefault()
+            }
         }
     }
 

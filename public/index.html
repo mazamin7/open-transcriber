@@ -23,8 +23,8 @@
           <span class="offline-pill">Offline</span>
         </div>
         <!-- Acoustic Sound Event Detection Pill (Google Live Transcribe clone) -->
-        <div id="sound-event-pill" class="sound-event-pill" title="Detected sound type">
-          Silence
+        <div id="sound-event-pill" class="sound-event-pill" title="Suono rilevato">
+          Silenzio
         </div>
       </div>
 
@@ -62,10 +62,10 @@
           <line x1="12" x2="12" y1="19" y2="22"/>
         </svg>
         <div class="empty-state-text">
-          Tap the microphone below to start live offline transcription.
+          Tocca il microfono in basso per avviare la trascrizione dal vivo.
         </div>
         <div style="font-size:14px; margin-top:8px; opacity:0.7;">
-          100% private · Zero data leaves your device
+          100% offline &amp; privato · Nessun dato lascia il dispositivo
         </div>
       </div>
 
@@ -81,7 +81,7 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
         <polyline points="6 9 12 15 18 9"></polyline>
       </svg>
-      Resume auto-scroll
+      Riprendi scorrimento
     </button>
 
     <!-- Bottom Action Dock -->
@@ -125,8 +125,8 @@
     <!-- Two-Way Deaf Communication Tray (Type-Back with 180° Table Flip) -->
     <div id="type-back-tray" class="type-back-tray">
       <div class="tray-header">
-        <span class="tray-title">Type Back (Reply to Speaker)</span>
-        <button id="close-tray-btn" class="icon-btn" aria-label="Close tray">
+        <span class="tray-title">Rispondi (Scrivi alla persona)</span>
+        <button id="close-tray-btn" class="icon-btn" aria-label="Chiudi tastiera">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -135,34 +135,34 @@
       </div>
 
       <div id="type-back-input-box" class="type-back-input-box">
-        <textarea id="type-back-textarea" class="type-back-textarea" placeholder="Type your response here..." rows="3"></textarea>
+        <textarea id="type-back-textarea" class="type-back-textarea" placeholder="Scrivi qui la tua risposta..." rows="3"></textarea>
       </div>
 
       <div class="tray-actions">
         <!-- 180° Table-Flip Button for facing hearing partner across the table -->
-        <button id="flip-btn" class="btn-secondary" title="Flip 180° upside down so the person opposite can read">
+        <button id="flip-btn" class="btn-secondary" title="Capovolgi a 180° per far leggere chi ti siede di fronte">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="m3 16 4 4 4-4"></path>
             <path d="M7 20V4"></path>
             <path d="m21 8-4-4-4 4"></path>
             <path d="M17 4v16"></path>
           </svg>
-          Flip 180° (Table Mode)
+          Capovolgi 180° (Tavolo)
         </button>
 
         <div style="display:flex; gap:8px;">
           <!-- Offline Text-To-Speech Button -->
-          <button id="speak-btn" class="btn-secondary" title="Speak out loud (TTS)">
+          <button id="speak-btn" class="btn-secondary" title="Pronuncia ad alta voce (TTS)">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
               <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
             </svg>
-            Speak
+            Pronuncia
           </button>
 
           <!-- Post to Stream Button -->
           <button id="send-reply-btn" class="btn-primary">
-            Send Reply
+            Invia
           </button>
         </div>
       </div>
@@ -222,17 +222,16 @@
           <!-- Language Selection -->
           <div class="setting-row">
             <div class="setting-label-row">
-              <span class="setting-title">Language</span>
+              <span class="setting-title">Lingua (Language)</span>
             </div>
             <select id="lang-select" class="select-control">
+              <option value="it-IT" selected>Italiano (Italia)</option>
               <option value="en-US">English (US)</option>
               <option value="en-GB">English (UK)</option>
-              <option value="es-ES">Spanish (Español)</option>
-              <option value="fr-FR">French (Français)</option>
-              <option value="de-DE">German (Deutsch)</option>
-              <option value="it-IT">Italian (Italiano)</option>
-              <option value="pt-BR">Portuguese (Brasil)</option>
-              <option value="ja-JP">Japanese (日本語)</option>
+              <option value="es-ES">Español (Spagna)</option>
+              <option value="fr-FR">Français (Francia)</option>
+              <option value="de-DE">Deutsch (Germania)</option>
+              <option value="pt-BR">Português (Brasil)</option>
             </select>
           </div>
 

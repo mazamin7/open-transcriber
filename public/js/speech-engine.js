@@ -7,7 +7,7 @@
 class SpeechEngine {
   constructor(options = {}) {
     this.engineType = options.engineType || 'webspeech'; // 'webspeech' | 'websocket' | 'mock'
-    this.language = options.language || 'en-US';
+    this.language = options.language || 'it-IT';
     this.wsUrl = options.wsUrl || 'ws://localhost:8765';
     
     this.onResult = options.onResult || (() => {});

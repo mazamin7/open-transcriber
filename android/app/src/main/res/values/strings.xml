@@ -1,16 +1,16 @@
 <resources>
-    <string name="app_name">Live Transcribe</string>
+    <string name="app_name">Trascrizione Istantanea</string>
     <string name="offline_badge">OFFLINE</string>
-    <string name="empty_prompt">Tap the microphone to begin live transcription.\n\n100% Offline &amp; Private · No Internet Used</string>
-    <string name="type_back_hint">Type your reply here…</string>
-    <string name="flip_180">Flip 180°</string>
-    <string name="speak_aloud">Speak</string>
-    <string name="send_reply">Send</string>
-    <string name="clear_screen">Clear</string>
-    <string name="sound_silence">Silence</string>
-    <string name="sound_speech">Speech</string>
-    <string name="sound_applause">Applause</string>
-    <string name="sound_music">Music</string>
-    <string name="sound_loud">Loud Noise</string>
-    <string name="permission_rationale">Live Transcribe requires microphone access to transcribe speech locally on your device.</string>
+    <string name="empty_prompt">Tocca il microfono per avviare la trascrizione dal vivo.\n\n100% Offline &amp; Privato · Nessun dato trasmesso</string>
+    <string name="type_back_hint">Scrivi la tua risposta qui…</string>
+    <string name="flip_180">Capovolgi 180°</string>
+    <string name="speak_aloud">Pronuncia</string>
+    <string name="send_reply">Invia</string>
+    <string name="clear_screen">Cancella</string>
+    <string name="sound_silence">Silenzio</string>
+    <string name="sound_speech">Voce</string>
+    <string name="sound_applause">Applausi</string>
+    <string name="sound_music">Musica</string>
+    <string name="sound_loud">Forte rumore</string>
+    <string name="permission_rationale">L\'app richiede l\'accesso al microfono per trascrivere la voce localmente sul dispositivo.</string>
 </resources>

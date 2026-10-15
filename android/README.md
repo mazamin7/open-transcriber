@@ -1,55 +1,71 @@
-# Native Android App - Live Transcribe (100% Standalone Offline) 📱
+# App Android Nativa - Trascrizione Istantanea (100% Standalone Offline in Italiano) 📱🇮🇹
 
-This is the **native Android Kotlin project** for Live Transcribe.
-
-## 🛡️ True Air-Gapped Privacy
-- **`android.permission.INTERNET` is deliberately omitted** from `AndroidManifest.xml`.
-- The Android operating system physically forbids this app from opening any network sockets.
-- The app operates **100% standalone on the phone**:
-  - No Wi-Fi required.
-  - No cellular data / SIM card required.
-  - No connection to any PC or server.
-  - Airplane Mode supported.
+Questa è l'applicazione **nativa Android in Kotlin** per la Trascrizione Istantanea, progettata specificamente per comunicare offline in **lingua italiana**.
 
 ---
 
-## 🏗️ Architecture & On-Device Engine
-
-1. **Embedded Kaldi / Vosk Neural Speech Engine (`VoskSpeechService.kt`):**
-   - Transcribes 16kHz audio directly on the phone's CPU.
-   - Sub-200ms streaming latency with real-time partial hypotheses.
-2. **Iconic Decibel Meter Bubble (`AudioVisualizerView.kt`):**
-   - Custom canvas view drawing the pulsing green circular volume indicator.
-3. **Deaf Two-Way Communication & 180° Table-Flip (`MainActivity.kt`):**
-   - Type-back reply tray.
-   - **Flip 180° Button:** Flips the typed text upside-down so the hearing partner sitting across the table can read it instantly without passing the phone!
-   - Offline Android Text-To-Speech (`android.speech.tts.TextToSpeech`).
-   - Quick Response Chips (`"Yes"`, `"No"`, `"Please repeat that"`, `"I am deaf, please speak clearly"`).
-4. **Haptic Vibration Feedback:**
-   - Vibrates phone gently when someone resumes speaking after a pause.
-5. **Screen Wake Lock:**
-   - Keeps screen continuously awake during live conversations.
+## 🛡️ Massima Privacy & Air-Gap Garantito
+- **`android.permission.INTERNET` è deliberatamente OMESSO** dal file `AndroidManifest.xml`.
+- Il sistema operativo Android impedisce fisicamente a questa applicazione di aprire qualsiasi connessione di rete o trasmettere dati all'esterno.
+- L'app funziona **100% autonoma sul telefono**:
+  - Nessuna connessione Wi-Fi necessaria.
+  - Nessun dato cellulare o scheda SIM necessaria.
+  - Nessun collegamento con il computer.
+  - Funziona perfettamente in **Modalità Aereo**.
 
 ---
 
-## 📦 How to Build the Standalone APK
+## ✨ Funzionalità per la Comunicazione con la tua Ragazza
 
-### Option A: Open with Android Studio
-1. Open **Android Studio** on your PC.
-2. Select **Open** ➔ choose the `d:\Documents\projects\transcriber\android` folder.
-3. Download the small English Vosk model:
-   - Download [`vosk-model-small-en-us-0.15.zip`](https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip) (~40MB).
-   - Unzip and rename the folder to `model-en-us`.
-   - Place it inside `android/app/src/main/assets/model-en-us`.
-4. Click **Build** ➔ **Build Bundle(s) / APK(s)** ➔ **Build APK(s)**.
-5. Copy the generated `.apk` file to your girlfriend's phone (via USB cable or Bluetooth) and tap to install!
+1. **Motore Neurale Vocale Offline Italiano (`VoskSpeechService.kt`):**
+   - Trascrive l'audio a 16kHz direttamente sul processore del telefono con il modello italiano `vosk-model-small-it-0.22`.
+   - Latenza minima (inferiore a 200ms) con anteprima in tempo reale delle parole mentre parli.
+2. **Bolla dei Decibel Verde di Google Live Transcribe (`AudioVisualizerView.kt`):**
+   - Cerchio verde reattivo che pulsa con il volume della tua voce per confermarle visivamente che stai parlando, e avvisa in giallo se c'è troppo rumore di fondo.
+3. **Comunicazione a Due Vie & Modalità Capovolgimento 180° (`MainActivity.kt`):**
+   - Cassetto tastiera integrato per permettere alla tua ragazza di scrivere la sua risposta.
+   - **Tasto "Capovolgi 180°":** Con un solo tocco, capovolge il testo scritto a testa in giù a caratteri giganti ad alto contrasto. Tu, seduto di fronte a lei al tavolo, puoi leggere immediatamente la sua risposta senza che debba passarti il telefono!
+   - **Sintesi Vocale Offline (TTS):** Può leggere la risposta ad alta voce con la voce italiana offline di sistema.
+   - **Frasi Rapide in Italiano:** Tasti rapidi a un tocco:
+     - *"Sì"*
+     - *"No"*
+     - *"Grazie!"*
+     - *"Puoi ripetere?"*
+     - *"Sono sorda, parla chiaro"*
+     - *"Dammi un attimo per scrivere"*
+     - *"Ho capito"*
+4. **Vibrazione Tattile all'Inizio del Parlato:**
+   - Il telefono vibra delicatamente appena ricominci a parlare dopo una pausa di silenzio, avvisandola sulla mano di guardare lo schermo.
+5. **Schermo Sempre Attivo:**
+   - Mantiene il display costantemente acceso durante la conversazione.
 
-### Option B: Build via Command Line (Gradle)
-```bash
-cd android
-./gradlew assembleDebug
-```
-The output APK will be at:
+---
+
+## 📦 Come Compilare l'APK con il Modello Italiano
+
+### Passo 1: Scarica il modello vocale italiano Vosk (~45MB)
+1. Scarica il file zip del modello italiano: [vosk-model-small-it-0.22.zip](https://alphacephei.com/vosk/models/vosk-model-small-it-0.22.zip).
+2. Estrai la cartella zippata.
+3. Rinomina la cartella estratta in `model-it`.
+4. Copia la cartella `model-it` all'interno di:
+   `android/app/src/main/assets/model-it`
+
+*(Nota: La cartella conterrà file come `am`, `conf`, `graph`, `ivector`)*
+
+### Passo 2: Compila l'APK
+- **Con Android Studio:**
+  1. Apri la cartella `d:\Documents\projects\transcriber\android`.
+  2. Clicca su **Build** ➔ **Build Bundle(s) / APK(s)** ➔ **Build APK(s)**.
+- **Oppure da terminale (Gradle):**
+  ```bash
+  cd android
+  ./gradlew assembleDebug
+  ```
+
+L'APK compilato si troverà in:
 `android/app/build/outputs/apk/debug/app-debug.apk`
 
-Transfer this `.apk` file to the phone, install it once, and she can use it anywhere in the world completely disconnected!
+### Passo 3: Installa sul telefono della tua ragazza
+1. Collega il telefono al PC via USB (o invialo tramite Bluetooth).
+2. Copia il file `app-debug.apk` sul telefono e toccalo per installarlo.
+3. **Fatto!** L'applicazione è ora sul suo telefono, pronta all'uso ovunque senza internet!

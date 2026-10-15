@@ -107,20 +107,20 @@ runTest('OBL-003: TwoWayCommunication Quick Chips & Flip State', () => {
 
   const twoWay = new TwoWayCommunication();
   assert(twoWay.customChips.length >= 6, 'Should have standard deaf communication default chips');
-  assert(twoWay.customChips.includes("I am deaf, please speak clearly"));
+  assert(twoWay.customChips.includes("Sono sorda, per favore parla chiaro"));
 
-  // Add custom chip
-  const added = twoWay.addCustomChip("I want an oat milk latte");
+  // Add custom chip in Italian
+  const added = twoWay.addCustomChip("Vorrei un caffè d'orzo");
   assert.strictEqual(added, true);
-  assert(twoWay.customChips.includes("I want an oat milk latte"));
+  assert(twoWay.customChips.includes("Vorrei un caffè d'orzo"));
 
   // Prevent duplicates
-  const duplicate = twoWay.addCustomChip("I want an oat milk latte");
+  const duplicate = twoWay.addCustomChip("Vorrei un caffè d'orzo");
   assert.strictEqual(duplicate, false);
 
   // Remove chip
-  twoWay.removeCustomChip("I want an oat milk latte");
-  assert.strictEqual(twoWay.customChips.includes("I want an oat milk latte"), false);
+  twoWay.removeCustomChip("Vorrei un caffè d'orzo");
+  assert.strictEqual(twoWay.customChips.includes("Vorrei un caffè d'orzo"), false);
 
   // Mock DOM element for flip
   const mockElement = {
