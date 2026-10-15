@@ -82,21 +82,25 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log('\n======================================================');
-  console.log('  Live Transcribe (Offline) Local Server Running');
-  console.log('======================================================');
-  console.log(`Local Access:      http://localhost:${PORT}`);
-  
   const localIps = getLocalIpAddresses();
-  if (localIps.length > 0) {
-    console.log('\nTo open on your Android phone (on same Wi-Fi):');
-    localIps.forEach(ip => {
-      console.log(`Android Access:    http://${ip}:${PORT}`);
-    });
-    console.log('\nTip: In Chrome on Android, tap "..." -> "Add to Home screen" / "Install App"');
-    console.log('to install it as a native standalone offline app!');
-  }
-  console.log('======================================================\n');
+  const wifiIp = localIps.find(ip => ip.startsWith('10.') || ip.startsWith('192.168.')) || localIps[0] || 'localhost';
+
+  console.log('\n================================================================');
+  console.log('   TRASCRIZIONE ISTANTANEA (OFFLINE) PRONTA!');
+  console.log('================================================================');
+  console.log('COME INSTALLARLA SUL TELEFONO DELLA TUA RAGAZZA (10 SECONDI):');
+  console.log('');
+  console.log(`1. Sul telefono della tua ragazza, apri Chrome e vai a:`);
+  console.log(`   👉 http://${wifiIp}:${PORT}`);
+  console.log('');
+  console.log('2. In alto a destra su Chrome, tocca i tre puntini (...)');
+  console.log('3. Tocca "Aggiungi a schermata Home" (o "Installa applicazione")');
+  console.log('');
+  console.log('================================================================');
+  console.log('FATTO! L\'app è ora salvata dentro il suo telefono.');
+  console.log('A questo punto puoi spegnere il computer e disattivare il Wi-Fi.');
+  console.log('L\'app funzionerà per sempre da sola, al 100% offline.');
+  console.log('================================================================\n');
 });
 
 module.exports = server;
