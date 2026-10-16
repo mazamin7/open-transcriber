@@ -459,7 +459,7 @@ class FloatingSubtitleService : Service() {
     companion object {
         private const val NOTIFICATION_ID = 2001
         private const val ACTION_STOP_SERVICE = "com.transcribe.offline.STOP_SERVICE"
-        private const val CHANNEL_ID = "floating_subtitles_live_v3"
+        const val CHANNEL_ID = "floating_subtitles_live_v3"
         var currentTranscript = ""
     }
 }

@@ -1,6 +1,9 @@
 package com.transcribe.offline
 
 import android.Manifest
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -18,6 +21,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
@@ -33,6 +37,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private var isFlipped = false
     private var isLaunchingFloating = false
     private var wakeLock: android.os.PowerManager.WakeLock? = null
+
+    private var hasCheckedNotificationsOnStartup = false
+    private var isAwaitingNotificationPermission = false
+    private var wasRequestingNotificationsForFloating = false
 
     private var tts: TextToSpeech? = null
     private var lastSpeechTime = 0L
@@ -77,6 +85,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         // Initialize local custom words manager
         customWordManager = CustomWordManager(this)
+
+        // Ensure notification channel is registered in system settings
+        createNotificationChannelIfNeeded()
 
         // Load saved language or default to it-IT
         val prefs = getSharedPreferences("app_language_prefs", Context.MODE_PRIVATE)
@@ -123,6 +134,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         binding.btnFloating.setOnClickListener {
             toggleFloatingSubtitles()
+        }
+
+        binding.btnFloating.setOnLongClickListener {
+            promptNotificationPermissionDialog(forFloating = false)
+            true
         }
 
         binding.fabMic.setOnClickListener {
@@ -220,6 +236,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             )
         } else {
             startListening()
+            checkNotificationPermissionOnStartup()
         }
     }
 
@@ -232,6 +249,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         if (requestCode == RECORD_AUDIO_REQUEST_CODE) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 startListening()
+                checkNotificationPermissionOnStartup()
             } else {
                 Toast.makeText(this, "Permesso microfono necessario per la trascrizione.", Toast.LENGTH_LONG).show()
             }
@@ -551,6 +569,89 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private val OVERLAY_PERMISSION_REQUEST_CODE = 202
 
+    private fun createNotificationChannelIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            val channel = NotificationChannel(
+                FloatingSubtitleService.CHANNEL_ID,
+                "Open Transcriber - Sottotitoli",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Mostra i sottotitoli in tempo reale sopra le notifiche e nel blocco schermo"
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                setSound(null, null)
+                enableVibration(false)
+            }
+            notificationManager?.createNotificationChannel(channel)
+        }
+    }
+
+    private fun areNotificationsEnabled(): Boolean {
+        val nm = NotificationManagerCompat.from(this)
+        if (!nm.areNotificationsEnabled()) return false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            val channel = manager?.getNotificationChannel(FloatingSubtitleService.CHANNEL_ID)
+            if (channel != null && channel.importance == NotificationManager.IMPORTANCE_NONE) {
+                return false
+            }
+        }
+        return true
+    }
+
+    private fun checkNotificationPermissionOnStartup() {
+        if (hasCheckedNotificationsOnStartup) return
+        hasCheckedNotificationsOnStartup = true
+
+        if (!areNotificationsEnabled()) {
+            promptNotificationPermissionDialog(forFloating = false)
+        }
+    }
+
+    private fun promptNotificationPermissionDialog(forFloating: Boolean) {
+        if (forFloating) {
+            wasRequestingNotificationsForFloating = true
+        }
+        isAwaitingNotificationPermission = true
+
+        AlertDialog.Builder(this)
+            .setTitle("Autorizzazione Notifiche")
+            .setMessage("Per mostrare la trascrizione vocale e i sottotitoli in tempo reale sulla schermata di blocco o quando l'app è in background, è necessario autorizzare le notifiche dalle Impostazioni di sistema.\n\nPremi 'Apri Impostazioni' e attiva l'interruttore delle notifiche per continuare.")
+            .setPositiveButton("Apri Impostazioni") { _, _ ->
+                openNotificationSettings()
+            }
+            .setNegativeButton("Più tardi") { dialog, _ ->
+                isAwaitingNotificationPermission = false
+                wasRequestingNotificationsForFloating = false
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun openNotificationSettings() {
+        try {
+            val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                    putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                }
+            } else {
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", packageName, null)
+                }
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            try {
+                val fallbackIntent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", packageName, null)
+                }
+                startActivity(fallbackIntent)
+            } catch (ex: Exception) {
+                Toast.makeText(this, "Impossibile aprire le impostazioni: ${ex.localizedMessage}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     private fun toggleFloatingSubtitles() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
             AlertDialog.Builder(this)
@@ -565,6 +666,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 }
                 .setNegativeButton("Annulla", null)
                 .show()
+            return
+        }
+
+        if (!areNotificationsEnabled()) {
+            promptNotificationPermissionDialog(forFloating = true)
             return
         }
 
@@ -591,6 +697,24 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             isLaunchingFloating = false
             return
         }
+
+        if (isAwaitingNotificationPermission) {
+            isAwaitingNotificationPermission = false
+            if (areNotificationsEnabled()) {
+                Toast.makeText(this, "Notifiche autorizzate con successo!", Toast.LENGTH_SHORT).show()
+                if (wasRequestingNotificationsForFloating) {
+                    wasRequestingNotificationsForFloating = false
+                    startFloatingSubtitles()
+                    return
+                }
+            } else {
+                if (wasRequestingNotificationsForFloating) {
+                    Toast.makeText(this, "Notifiche non autorizzate: i sottotitoli sul blocco schermo non saranno visibili.", Toast.LENGTH_LONG).show()
+                }
+            }
+            wasRequestingNotificationsForFloating = false
+        }
+
         stopService(Intent(this, FloatingSubtitleService::class.java))
         binding.root.postDelayed({
             if (!isListening && ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
@@ -603,7 +727,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == OVERLAY_PERMISSION_REQUEST_CODE) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
-                startFloatingSubtitles()
+                if (!areNotificationsEnabled()) {
+                    promptNotificationPermissionDialog(forFloating = true)
+                } else {
+                    startFloatingSubtitles()
+                }
             } else {
                 Toast.makeText(this, "Permesso non concesso: impossibile mostrare i sottotitoli sopra le app.", Toast.LENGTH_LONG).show()
             }
