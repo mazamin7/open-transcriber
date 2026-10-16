@@ -30,6 +30,7 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
@@ -40,7 +41,7 @@ import androidx.core.app.NotificationCompat
  * Deaf users can browse, use WhatsApp or read articles while live speech is transcribed in real-time.
  * 100% offline, air-gapped (zero network permissions).
  */
-class FloatingSubtitleService : Service() {
+class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
 
     private lateinit var windowManager: WindowManager
     private var floatingView: View? = null
@@ -51,7 +52,6 @@ class FloatingSubtitleService : Service() {
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var lastPartialWordCount = 0
-    private val floatingTranscript = StringBuilder()
     private var lastPendingPartial = ""
     private var wakeLock: android.os.PowerManager.WakeLock? = null
     private var pendingIntent: PendingIntent? = null
@@ -72,12 +72,9 @@ class FloatingSubtitleService : Service() {
         super.onCreate()
         customWordManager = CustomWordManager(this)
 
-        // Initialize shared transcript session and pre-fill bubble with latest spoken words
+        // Initialize shared unified transcript session and register for real-time updates
         TranscriptSessionManager.init(this)
-        val recentSnippet = TranscriptSessionManager.getRecentSnippet(200)
-        if (recentSnippet.isNotEmpty()) {
-            floatingTranscript.append(recentSnippet).append(" ")
-        }
+        TranscriptSessionManager.registerListener(this)
 
         // Keep CPU active for continuous speech recognition even when screen locks
         try {
@@ -252,9 +249,49 @@ class FloatingSubtitleService : Service() {
             }
 
             val tvFloatingText = floatingView?.findViewById<TextView>(R.id.tvFloatingText)
-            val initialText = if (floatingTranscript.isNotEmpty()) floatingTranscript.toString().trim() else "In attesa di voce..."
-            tvFloatingText?.text = initialText
+            val tvFloatingInterim = floatingView?.findViewById<TextView>(R.id.tvFloatingInterim)
+            val floatingScrollView = floatingView?.findViewById<ScrollView>(R.id.floatingScrollView)
+
+            val full = TranscriptSessionManager.getFullTranscript()
+            val interim = TranscriptSessionManager.getInterim()
+            if (full.isNotEmpty() || interim.isNotEmpty()) {
+                tvFloatingText?.text = full
+                tvFloatingInterim?.text = interim
+            } else {
+                tvFloatingText?.text = "In attesa di voce..."
+                tvFloatingInterim?.text = ""
+            }
+
+            val tvFloatingStatus = floatingView?.findViewById<TextView>(R.id.tvFloatingStatus)
+            if (TranscriptSessionManager.isIncognitoMode()) {
+                tvFloatingStatus?.text = "🕶️ Incognito"
+                tvFloatingStatus?.setTextColor(Color.parseColor("#FFD54F"))
+            } else {
+                tvFloatingStatus?.text = "In ascolto..."
+                tvFloatingStatus?.setTextColor(Color.parseColor("#00E676"))
+            }
+
+            val maxBubbleHeight = (resources.displayMetrics.density * 135).toInt()
+            floatingScrollView?.let { sv ->
+                sv.viewTreeObserver.addOnGlobalLayoutListener {
+                    if (sv.height > maxBubbleHeight) {
+                        val lp = sv.layoutParams
+                        if (lp != null && lp.height != maxBubbleHeight) {
+                            lp.height = maxBubbleHeight
+                            sv.layoutParams = lp
+                        }
+                    }
+                }
+            }
+
+            floatingScrollView?.post {
+                floatingScrollView.fullScroll(View.FOCUS_DOWN)
+            }
+
             tvFloatingText?.setOnClickListener {
+                maximizeToFullApp()
+            }
+            tvFloatingInterim?.setOnClickListener {
                 maximizeToFullApp()
             }
 
@@ -299,19 +336,12 @@ class FloatingSubtitleService : Service() {
         systemSpeechService?.stop()
         systemSpeechService = null
 
-        val tvFloatingText = floatingView?.findViewById<TextView>(R.id.tvFloatingText)
-
         val service = OnDeviceSystemSpeechService(this, object : OnDeviceSystemSpeechService.Listener {
             override fun onPartialResult(hypothesis: String) {
                 if (hypothesis.isNotEmpty()) {
                     lastPendingPartial = hypothesis
                     TranscriptSessionManager.setInterim(hypothesis)
                     checkAndTriggerWordHaptic(hypothesis, isFinal = false)
-                    mainHandler.post {
-                        tvFloatingText?.text = hypothesis
-                    }
-                    updateNotificationText(hypothesis, isFinal = false)
-                    currentTranscript = hypothesis
                 }
             }
 
@@ -320,19 +350,6 @@ class FloatingSubtitleService : Service() {
                     lastPendingPartial = ""
                     TranscriptSessionManager.appendSentence(sentence, this@FloatingSubtitleService)
                     checkAndTriggerWordHaptic(sentence, isFinal = true)
-                    floatingTranscript.append(sentence).append(" ")
-                    if (floatingTranscript.length > 250) {
-                        val trimmed = floatingTranscript.takeLast(200).toString()
-                        val spaceIndex = trimmed.indexOf(' ')
-                        val safeText = if (spaceIndex != -1) trimmed.substring(spaceIndex + 1) else trimmed
-                        floatingTranscript.clear().append(safeText)
-                    }
-                    val currentText = floatingTranscript.toString().trim()
-                    mainHandler.post {
-                        tvFloatingText?.text = currentText
-                    }
-                    updateNotificationText(currentText, isFinal = true)
-                    currentTranscript = currentText
                 } else {
                     lastPartialWordCount = 0
                 }
@@ -447,8 +464,63 @@ class FloatingSubtitleService : Service() {
         stopSelf()
     }
 
+    override fun onTranscriptChanged(fullText: String, interimText: String) {
+        mainHandler.post {
+            val tvFloatingText = floatingView?.findViewById<TextView>(R.id.tvFloatingText)
+            val tvFloatingInterim = floatingView?.findViewById<TextView>(R.id.tvFloatingInterim)
+            val floatingScrollView = floatingView?.findViewById<ScrollView>(R.id.floatingScrollView)
+
+            if (fullText.isEmpty() && interimText.isEmpty()) {
+                tvFloatingText?.text = "In attesa di voce..."
+                tvFloatingInterim?.text = ""
+            } else {
+                tvFloatingText?.text = fullText
+                tvFloatingInterim?.text = interimText
+            }
+
+            floatingScrollView?.post {
+                floatingScrollView.fullScroll(View.FOCUS_DOWN)
+            }
+
+            val displayText = if (interimText.isNotEmpty()) {
+                if (fullText.isNotEmpty()) "$fullText $interimText" else interimText
+            } else {
+                fullText
+            }
+            if (displayText.isNotEmpty()) {
+                updateNotificationText(displayText)
+            }
+        }
+    }
+
+    override fun onIncognitoChanged(isIncognito: Boolean) {
+        mainHandler.post {
+            val tvFloatingStatus = floatingView?.findViewById<TextView>(R.id.tvFloatingStatus)
+            if (isIncognito) {
+                tvFloatingStatus?.text = "🕶️ Incognito"
+                tvFloatingStatus?.setTextColor(Color.parseColor("#FFD54F"))
+                params?.let { p ->
+                    p.flags = p.flags or WindowManager.LayoutParams.FLAG_SECURE
+                    if (floatingView != null) {
+                        try { windowManager.updateViewLayout(floatingView, p) } catch (e: Exception) {}
+                    }
+                }
+            } else {
+                tvFloatingStatus?.text = "In ascolto..."
+                tvFloatingStatus?.setTextColor(Color.parseColor("#00E676"))
+                params?.let { p ->
+                    p.flags = p.flags and WindowManager.LayoutParams.FLAG_SECURE.inv()
+                    if (floatingView != null) {
+                        try { windowManager.updateViewLayout(floatingView, p) } catch (e: Exception) {}
+                    }
+                }
+            }
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        TranscriptSessionManager.unregisterListener(this)
         if (lastPendingPartial.isNotBlank()) {
             TranscriptSessionManager.commitInterimIfPresent(this)
             lastPendingPartial = ""

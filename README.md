@@ -9,6 +9,9 @@
 | Funzionalità | Descrizione |
 |---|---|
 | **Zero Permessi Internet** | Nessun permesso di rete (`android.permission.INTERNET` assente). Privacy totale al 100%. |
+| **Crittografia Hardware AES-256-GCM** | Persistenza sicura anche dopo il riavvio del telefono con chiavi generate e protette dal modulo hardware del dispositivo (**AndroidKeyStore / TEE**). Nessun testo memorizzato in chiaro. |
+| **Modalità Incognito 🕶️** | Attivabile con un tocco: la trascrizione rimane unicamente nella RAM volatile (zero scritture su disco) e blocca screenshot e registrazioni dello schermo (`FLAG_SECURE`). |
+| **Flusso Unificato App & Bolla** | Nessuna perdita di testo passando tra l'app a schermo intero e la bolla fluttuante: cronologia continua e sincronizzata bidirezionalmente in tempo reale (`TranscriptSessionManager`). |
 | **Motore Vocale Neurale On-Device** | Sfrutta il motore neurale on-device di Android (`SpeechRecognizer.createOnDeviceSpeechRecognizer`). |
 | **Selettore Lingua Dinamico** | Scelta rapida della lingua con pill dedicata in alto: Italiano 🇮🇹, English (US) 🇺🇸, English (UK) 🇬🇧, Español 🇪🇸, Français 🇫🇷, Deutsch 🇩🇪, Português 🇧🇷, Русский 🇷🇺, 中文 🇨🇳, 日本語 🇯🇵. |
 | **Sottotitoli Fluttuanti Sovrapposti** | Finestra trasparente e trascinabile che mostra i sottotitoli in tempo reale sopra WhatsApp e qualsiasi altra app (`FloatingSubtitleService`). |
@@ -73,14 +76,16 @@ open-transcriber/
     │   └── src/main/
     │       ├── AndroidManifest.xml     # Zero permessi internet (100% offline)
     │       ├── java/com/transcribe/offline/
-    │       │   ├── MainActivity.kt               # UI principale, selettore lingua, showWhenLocked
+    │       │   ├── MainActivity.kt               # UI principale, selettore lingua, showWhenLocked, toggle Incognito
     │       │   ├── FloatingSubtitleService.kt    # Servizio overlay e notifica live su blocco schermo
+    │       │   ├── TranscriptSessionManager.kt   # Gestore unificato flusso testo e persistenza sincrona
+    │       │   ├── CryptoManager.kt              # Crittografia hardware AES-256-GCM (Android KeyStore / TEE)
     │       │   ├── OnDeviceSystemSpeechService.kt# Wrapper On-Device SpeechRecognizer
     │       │   ├── CustomWordManager.kt          # Gestione dizionario parole personalizzate
     │       │   └── AudioVisualizerView.kt        # Indicatore visivo decibel / volume
     │       └── res/
-    │           ├── layout/activity_main.xml      # Layout principale con pill selettore lingua
-    │           ├── layout/layout_floating_subtitle.xml # Layout overlay sottotitoli
+    │           ├── layout/activity_main.xml      # Layout principale con pill lingua e pill Incognito
+    │           ├── layout/layout_floating_subtitle.xml # Layout overlay sottotitoli con scroll continuo
     │           └── layout/dialog_dictionary.xml  # Dialog aggiunta/rimozione parole
     ├── build.gradle
     └── gradlew.bat

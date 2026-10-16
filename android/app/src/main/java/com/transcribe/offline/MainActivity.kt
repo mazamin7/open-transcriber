@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -28,7 +29,7 @@ import com.google.android.material.button.MaterialButton
 import com.transcribe.offline.databinding.ActivityMainBinding
 import java.util.Locale
 
-class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
+class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, TranscriptSessionManager.Listener {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var customWordManager: CustomWordManager
@@ -85,8 +86,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         // Initialize local custom words manager
         customWordManager = CustomWordManager(this)
 
-        // Initialize shared transcript session and restore any active conversation
+        // Initialize shared transcript session and register for real-time updates
         TranscriptSessionManager.init(this)
+        TranscriptSessionManager.registerListener(this)
         syncTranscriptUi()
 
         // Ensure notification channel is registered in system settings
@@ -129,6 +131,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private fun setupListeners() {
         binding.btnLanguageSelector.setOnClickListener {
             showLanguageSelectorDialog()
+        }
+
+        binding.btnIncognito.setOnClickListener {
+            showIncognitoToggleDialog()
         }
 
         binding.btnDictionary.setOnClickListener {
@@ -695,19 +701,66 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
+    override fun onTranscriptChanged(fullText: String, interimText: String) {
+        runOnUiThread {
+            if (fullText.isNotEmpty()) {
+                binding.tvEmptyPrompt.visibility = View.GONE
+                binding.tvTranscript.text = fullText
+            } else if (interimText.isEmpty()) {
+                binding.tvEmptyPrompt.visibility = View.VISIBLE
+                binding.tvTranscript.text = ""
+            }
+            binding.tvInterim.text = interimText
+            scrollToBottom()
+        }
+    }
+
+    override fun onIncognitoChanged(isIncognito: Boolean) {
+        runOnUiThread {
+            if (isIncognito) {
+                binding.btnIncognito.text = "🕶️ Incognito"
+                binding.btnIncognito.setTextColor(Color.parseColor("#FFD54F"))
+                window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+            } else {
+                binding.btnIncognito.text = "🔒 Criptato"
+                binding.btnIncognito.setTextColor(ContextCompat.getColor(this, R.color.white))
+                window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            }
+        }
+    }
+
+    private fun showIncognitoToggleDialog() {
+        val currentlyIncognito = TranscriptSessionManager.isIncognitoMode()
+        if (!currentlyIncognito) {
+            AlertDialog.Builder(this)
+                .setTitle("Attiva Modalità Incognito 🕶️")
+                .setMessage("In Modalità Incognito:\n\n• Le trascrizioni rimangono SOLO nella memoria volatile (RAM) e non vengono salvate sul disco del telefono.\n• Al riavvio del telefono o alla chiusura forzata dell'app, la cronologia svanirà senza lasciare tracce.\n• Vengono bloccati screenshot e registrazioni dello schermo per massima privacy.")
+                .setPositiveButton("Attiva Incognito") { _, _ ->
+                    TranscriptSessionManager.setIncognitoMode(true, this)
+                    Toast.makeText(this, "Modalità Incognito ATTIVA", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Annulla", null)
+                .show()
+        } else {
+            AlertDialog.Builder(this)
+                .setTitle("Disattiva Modalità Incognito 🔒")
+                .setMessage("Vuoi tornare alla Modalità Criptata?\n\nLe trascrizioni correnti e future torneranno a essere salvate nella memoria fisica con crittografia hardware AES-256 (Android KeyStore), persistendo anche al riavvio del telefono.")
+                .setPositiveButton("Attiva Memoria Criptata") { _, _ ->
+                    TranscriptSessionManager.setIncognitoMode(false, this)
+                    Toast.makeText(this, "Memoria Criptata AES-256 ATTIVA", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Annulla", null)
+                .show()
+        }
+    }
+
     private fun syncTranscriptUi() {
         TranscriptSessionManager.init(this)
-        val full = TranscriptSessionManager.getFullTranscript()
-        val interim = TranscriptSessionManager.getInterim()
-        if (full.isNotEmpty()) {
-            binding.tvEmptyPrompt.visibility = View.GONE
-            binding.tvTranscript.text = full
-        } else if (interim.isEmpty()) {
-            binding.tvEmptyPrompt.visibility = View.VISIBLE
-            binding.tvTranscript.text = ""
-        }
-        binding.tvInterim.text = interim
-        scrollToBottom()
+        onTranscriptChanged(
+            TranscriptSessionManager.getFullTranscript(),
+            TranscriptSessionManager.getInterim()
+        )
+        onIncognitoChanged(TranscriptSessionManager.isIncognitoMode())
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -768,6 +821,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onDestroy() {
         super.onDestroy()
+        TranscriptSessionManager.unregisterListener(this)
         stopListening()
         try {
             if (wakeLock?.isHeld == true) {

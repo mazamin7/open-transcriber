@@ -33,6 +33,7 @@
             android:src="@android:drawable/ic_btn_speak_now" />
 
         <TextView
+            android:id="@+id/tvFloatingStatus"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -64,24 +65,52 @@
             android:layout_marginStart="6dp" />
     </LinearLayout>
 
-    <!-- Subtitle text with high contrast shadow for any app background -->
-    <TextView
-        android:id="@+id/tvFloatingText"
+    <!-- Subtitle text with high contrast shadow and scrollable continuous history -->
+    <ScrollView
+        android:id="@+id/floatingScrollView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="In attesa di voce..."
-        android:textColor="#FFFFFF"
-        android:textSize="17sp"
-        android:textStyle="bold"
-        android:maxLines="4"
-        android:ellipsize="none"
-        android:shadowColor="#FF000000"
-        android:shadowDx="2"
-        android:shadowDy="2"
-        android:shadowRadius="4"
-        android:lineSpacingExtra="3dp"
+        android:scrollbars="none"
+        android:fadingEdge="vertical"
         android:paddingHorizontal="4dp"
         android:paddingTop="2dp"
-        android:paddingBottom="4dp" />
+        android:paddingBottom="4dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Full Conversation History (matches MainActivity exactly) -->
+            <TextView
+                android:id="@+id/tvFloatingText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="In attesa di voce..."
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:shadowColor="#FF000000"
+                android:shadowDx="2"
+                android:shadowDy="2"
+                android:shadowRadius="4"
+                android:lineSpacingExtra="3dp" />
+
+            <!-- Live in-progress utterance (accent green) -->
+            <TextView
+                android:id="@+id/tvFloatingInterim"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#00E676"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:shadowColor="#FF000000"
+                android:shadowDx="2"
+                android:shadowDy="2"
+                android:shadowRadius="4"
+                android:lineSpacingExtra="3dp" />
+
+        </LinearLayout>
+    </ScrollView>
 
 </LinearLayout>
