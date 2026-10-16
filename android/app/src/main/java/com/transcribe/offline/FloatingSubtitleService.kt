@@ -103,6 +103,24 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
                 }
                 return START_STICKY
             }
+            ACTION_RESTORE_NOTIFICATION -> {
+                if (isRunning) {
+                    val full = TranscriptSessionManager.getFullTranscript()
+                    val interim = TranscriptSessionManager.getInterim()
+                    val displayText = if (interim.isNotEmpty()) {
+                        if (full.isNotEmpty()) "$full\n▶ $interim" else "▶ $interim"
+                    } else full.ifEmpty { "In ascolto... Parla vicino al telefono" }
+                    val notification = buildNotification(displayText)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
+                    } else {
+                        startForeground(NOTIFICATION_ID, notification)
+                    }
+                    val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    notificationManager.notify(NOTIFICATION_ID, notification)
+                }
+                return START_STICKY
+            }
         }
         return START_STICKY
     }
@@ -176,6 +194,16 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
         val toggleActionText = if (isBubbleVisibleByUser) "Nascondi Bolla" else "Mostra Bolla"
         val toggleActionIcon = if (isBubbleVisibleByUser) android.R.drawable.ic_menu_close_clear_cancel else android.R.drawable.ic_input_add
 
+        val restoreIntent = Intent(this, FloatingSubtitleService::class.java).apply {
+            action = ACTION_RESTORE_NOTIFICATION
+        }
+        val restorePending = PendingIntent.getService(
+            this,
+            99,
+            restoreIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(latestLine)
@@ -183,6 +211,7 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
             .setSmallIcon(R.mipmap.ic_launcher)
             .setColor(Color.parseColor("#00E676"))
             .setContentIntent(pendingIntent)
+            .setDeleteIntent(restorePending)
             .setOngoing(true)
             .setAutoCancel(false)
             .setOnlyAlertOnce(true)
@@ -630,6 +659,7 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
         const val ACTION_STOP_SERVICE = "com.transcribe.offline.STOP_SERVICE"
         const val ACTION_SHOW_BUBBLE = "com.transcribe.offline.SHOW_BUBBLE"
         const val ACTION_HIDE_BUBBLE = "com.transcribe.offline.HIDE_BUBBLE"
+        const val ACTION_RESTORE_NOTIFICATION = "com.transcribe.offline.RESTORE_NOTIFICATION"
         const val ACTION_SET_IN_APP_FOREGROUND = "com.transcribe.offline.SET_IN_APP_FOREGROUND"
         const val EXTRA_IN_APP = "extra_in_app"
         const val CHANNEL_ID = "live_transcript_permanent_v6"

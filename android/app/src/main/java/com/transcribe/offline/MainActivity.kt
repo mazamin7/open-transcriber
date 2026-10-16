@@ -135,7 +135,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
         }
 
         binding.btnFloating.setOnLongClickListener {
-            promptNotificationPermissionDialog(forFloating = false)
+            if (!areNotificationsEnabled()) {
+                promptNotificationPermissionDialog(forFloating = false)
+            } else {
+                checkBatteryOptimizationPermission()
+            }
             true
         }
 
@@ -492,18 +496,19 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
         val btnClose = dialogView.findViewById<android.widget.ImageButton>(R.id.btnCloseLanguageDialog)
         val btnOpenSettings = dialogView.findViewById<MaterialButton>(R.id.btnOpenSpeechSettings)
         val layoutScanning = dialogView.findViewById<android.widget.LinearLayout>(R.id.layoutScanning)
-        val container = dialogView.findViewById<android.widget.LinearLayout>(R.id.installedLanguagesContainer)
+        val containerInstalled = dialogView.findViewById<android.widget.LinearLayout>(R.id.installedLanguagesContainer)
+        val containerDownloadable = dialogView.findViewById<android.widget.LinearLayout>(R.id.downloadableLanguagesContainer)
 
-        fun renderLanguages(installed: List<LanguageModelManager.LanguageInfo>) {
-            container?.removeAllViews()
+        fun renderInstalled(installed: List<LanguageModelManager.LanguageInfo>) {
+            containerInstalled?.removeAllViews()
             if (installed.isEmpty()) {
                 val tvEmpty = android.widget.TextView(this).apply {
-                    text = "Nessun modulo offline rilevato.\nTocca il pulsante in basso per scaricarne uno dalle impostazioni di sistema."
+                    text = "Nessun modulo offline installato."
                     setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
-                    textSize = 14f
-                    setPadding(16, 24, 16, 24)
+                    textSize = 13f
+                    setPadding(16, 20, 16, 20)
                 }
-                container?.addView(tvEmpty)
+                containerInstalled?.addView(tvEmpty)
                 return
             }
 
@@ -512,7 +517,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
                 val row = android.widget.LinearLayout(this).apply {
                     orientation = android.widget.LinearLayout.HORIZONTAL
                     gravity = android.view.Gravity.CENTER_VERTICAL
-                    setPadding(24, 20, 24, 20)
+                    setPadding(20, 16, 20, 16)
                     background = ContextCompat.getDrawable(
                         context,
                         if (isSelected) R.drawable.bg_event_pill else android.R.color.transparent
@@ -521,18 +526,16 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
                     isFocusable = true
                 }
 
-                // Flag
                 val tvFlag = android.widget.TextView(this).apply {
                     text = lang.flag
                     textSize = 22f
                     layoutParams = android.widget.LinearLayout.LayoutParams(
                         android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
                         android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
-                    ).apply { marginEnd = 16 }
+                    ).apply { marginEnd = 14 }
                 }
                 row.addView(tvFlag)
 
-                // Name and code column
                 val col = android.widget.LinearLayout(this).apply {
                     orientation = android.widget.LinearLayout.VERTICAL
                     layoutParams = android.widget.LinearLayout.LayoutParams(
@@ -548,7 +551,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
                     typeface = android.graphics.Typeface.DEFAULT_BOLD
                 }
                 val tvCode = android.widget.TextView(this).apply {
-                    text = "${lang.code} • Modulo Offline"
+                    text = "${lang.code} • Modulo Offline Pronto"
                     setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
                     textSize = 11f
                 }
@@ -556,16 +559,15 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
                 col.addView(tvCode)
                 row.addView(col)
 
-                // Status Badge
                 val tvBadge = android.widget.TextView(this).apply {
-                    text = if (isSelected) "ATTIVA ✓" else "Pronta"
+                    text = if (isSelected) "ATTIVA ✓" else "Attiva"
                     setTextColor(
                         if (isSelected) ContextCompat.getColor(context, R.color.accent_green)
-                        else ContextCompat.getColor(context, R.color.text_secondary)
+                        else ContextCompat.getColor(context, R.color.white)
                     )
                     textSize = 11f
                     typeface = android.graphics.Typeface.DEFAULT_BOLD
-                    setPadding(12, 6, 12, 6)
+                    setPadding(10, 6, 10, 6)
                 }
                 row.addView(tvBadge)
 
@@ -589,9 +591,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
                     dialog.dismiss()
                 }
 
-                container?.addView(row)
+                containerInstalled?.addView(row)
 
-                // Divider
                 val divider = View(this).apply {
                     layoutParams = android.widget.LinearLayout.LayoutParams(
                         android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
@@ -599,34 +600,150 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
                     ).apply { setMargins(16, 0, 16, 0) }
                     setBackgroundColor(ContextCompat.getColor(context, R.color.surface_border))
                 }
-                container?.addView(divider)
+                containerInstalled?.addView(divider)
             }
         }
 
-        renderLanguages(installedLanguages)
+        fun renderDownloadable(downloadable: List<LanguageModelManager.LanguageInfo>) {
+            containerDownloadable?.removeAllViews()
+            if (downloadable.isEmpty()) {
+                val tvEmpty = android.widget.TextView(this).apply {
+                    text = "Tutte le lingue supportate risultano già installate sul dispositivo."
+                    setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                    textSize = 13f
+                    setPadding(16, 20, 16, 20)
+                }
+                containerDownloadable?.addView(tvEmpty)
+                return
+            }
+
+            for (lang in downloadable) {
+                val row = android.widget.LinearLayout(this).apply {
+                    orientation = android.widget.LinearLayout.HORIZONTAL
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                    setPadding(20, 14, 20, 14)
+                }
+
+                val tvFlag = android.widget.TextView(this).apply {
+                    text = lang.flag
+                    textSize = 22f
+                    layoutParams = android.widget.LinearLayout.LayoutParams(
+                        android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                        android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { marginEnd = 14 }
+                }
+                row.addView(tvFlag)
+
+                val col = android.widget.LinearLayout(this).apply {
+                    orientation = android.widget.LinearLayout.VERTICAL
+                    layoutParams = android.widget.LinearLayout.LayoutParams(
+                        0,
+                        android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                        1f
+                    )
+                }
+                val tvName = android.widget.TextView(this).apply {
+                    text = lang.displayName
+                    setTextColor(ContextCompat.getColor(context, R.color.white))
+                    textSize = 14f
+                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                }
+                val tvCode = android.widget.TextView(this).apply {
+                    text = "${lang.code} • Non ancora scaricata"
+                    setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                    textSize = 11f
+                }
+                col.addView(tvName)
+                col.addView(tvCode)
+                row.addView(col)
+
+                val btnDownload = com.google.android.material.button.MaterialButton(this).apply {
+                    text = "Scarica 📥"
+                    textSize = 11f
+                    setTextColor(ContextCompat.getColor(context, R.color.black))
+                    setBackgroundColor(ContextCompat.getColor(context, R.color.accent_green))
+                    cornerRadius = 8
+                    setPadding(12, 4, 12, 4)
+                }
+
+                btnDownload.setOnClickListener {
+                    btnDownload.isEnabled = false
+                    btnDownload.text = "Avvio... ⏳"
+                    LanguageModelManager.triggerModelDownload(
+                        this@MainActivity,
+                        lang.code,
+                        onProgress = { percent ->
+                            runOnUiThread {
+                                btnDownload.text = "$percent% ⏳"
+                            }
+                        },
+                        onComplete = { success, message ->
+                            runOnUiThread {
+                                if (success) {
+                                    Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
+                                    LanguageModelManager.detectInstalledLanguages(this@MainActivity) { newInstalled, newDownloadable ->
+                                        installedLanguages = newInstalled.toMutableList()
+                                        renderInstalled(installedLanguages)
+                                        renderDownloadable(newDownloadable)
+                                        updateLanguageBadge()
+                                    }
+                                } else {
+                                    btnDownload.isEnabled = true
+                                    btnDownload.text = "Scarica 📥"
+                                    showManualDownloadGuideDialog(lang)
+                                }
+                            }
+                        }
+                    )
+                }
+
+                row.addView(btnDownload)
+                containerDownloadable?.addView(row)
+
+                val divider = View(this).apply {
+                    layoutParams = android.widget.LinearLayout.LayoutParams(
+                        android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                        1
+                    ).apply { setMargins(16, 0, 16, 0) }
+                    setBackgroundColor(ContextCompat.getColor(context, R.color.surface_border))
+                }
+                containerDownloadable?.addView(divider)
+            }
+        }
+
+        renderInstalled(installedLanguages)
 
         layoutScanning?.visibility = View.VISIBLE
-        LanguageModelManager.detectInstalledLanguages(this) { installed, _ ->
+        LanguageModelManager.detectInstalledLanguages(this) { installed, downloadable ->
             layoutScanning?.visibility = View.GONE
             if (installed.isNotEmpty()) {
                 installedLanguages = installed.toMutableList()
-                renderLanguages(installedLanguages)
+                renderInstalled(installedLanguages)
                 updateLanguageBadge()
             }
+            renderDownloadable(downloadable)
         }
 
         btnOpenSettings?.setOnClickListener {
-            val opened = LanguageModelManager.openOfflineSpeechSettings(this)
-            if (opened) {
-                Toast.makeText(this, "Nelle impostazioni: tocca 'Riconoscimento vocale offline' (o ⚙️) per scaricare le lingue desiderate.", Toast.LENGTH_LONG).show()
-            } else {
-                Toast.makeText(this, "Apri Impostazioni di sistema > Voce > Riconoscimento vocale offline", Toast.LENGTH_LONG).show()
-            }
-            dialog.dismiss()
+            showManualDownloadGuideDialog(LanguageModelManager.getLanguageInfo(selectedLanguage))
         }
 
         btnClose?.setOnClickListener { dialog.dismiss() }
         dialog.show()
+    }
+
+    private fun showManualDownloadGuideDialog(lang: LanguageModelManager.LanguageInfo) {
+        AlertDialog.Builder(this)
+            .setTitle("Come Scaricare il Modulo: ${lang.flag} ${lang.displayName}")
+            .setMessage("Nelle impostazioni di sistema Android:\n\n1. Tocca 'Apri Impostazioni'.\n2. Nella schermata 'Tastiera su schermo', seleziona 'Gboard' o 'Digitazione vocale Google' (icona ⚙️).\n3. Tocca 'Voce' o 'Riconoscimento vocale offline'.\n4. Nella scheda 'TUTTO', cerca '${lang.displayName}' e tocca Scarica.")
+            .setPositiveButton("Apri Impostazioni") { _, _ ->
+                val opened = LanguageModelManager.openOfflineSpeechSettings(this)
+                if (!opened) {
+                    Toast.makeText(this, "Apri Impostazioni > Sistema > Lingue e tastiere > Riconoscimento vocale offline", Toast.LENGTH_LONG).show()
+                }
+            }
+            .setNegativeButton("Chiudi", null)
+            .show()
     }
 
     private fun updateTtsLanguage(langTag: String) {
@@ -767,6 +884,33 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
 
         if (!areNotificationsEnabled()) {
             promptNotificationPermissionDialog(forFloating = false)
+        } else {
+            checkBatteryOptimizationPermission()
+        }
+    }
+
+    private fun checkBatteryOptimizationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+            if (pm != null && !pm.isIgnoringBatteryOptimizations(packageName)) {
+                AlertDialog.Builder(this)
+                    .setTitle("Notifica Permanente e Continua 🔋")
+                    .setMessage("Per rendere la notifica fissa e permanente al 100% (evitando che Android cancelli la notifica o sospenda l'ascolto quando blocchi lo schermo o cambi app), imposta la batteria su 'Senza restrizioni'.")
+                    .setPositiveButton("Imposta Senza Restrizioni") { _, _ ->
+                        try {
+                            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                data = Uri.parse("package:$packageName")
+                            }
+                            startActivity(intent)
+                        } catch (e: Exception) {
+                            try {
+                                startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                            } catch (e2: Exception) {}
+                        }
+                    }
+                    .setNegativeButton("Più tardi", null)
+                    .show()
+            }
         }
     }
 
@@ -953,6 +1097,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
             isAwaitingNotificationPermission = false
             if (areNotificationsEnabled()) {
                 Toast.makeText(this, "Notifiche autorizzate con successo!", Toast.LENGTH_SHORT).show()
+                checkBatteryOptimizationPermission()
                 if (wasRequestingNotificationsForFloating) {
                     wasRequestingNotificationsForFloating = false
                     startFloatingSubtitles()

@@ -44,7 +44,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Riconoscimento vocale 100% offline. Vengono lette le lingue con pacchetto vocale scaricato sul telefono."
+        android:text="Riconoscimento vocale 100% offline. Scegli tra le lingue installate o scaricane di nuove."
         android:textColor="@color/text_secondary"
         android:textSize="13sp"
         android:layout_marginTop="4dp"
@@ -67,79 +67,104 @@
             android:layout_marginEnd="8dp" />
 
         <TextView
+            android:id="@+id/tvScanningStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Rilevamento moduli installati in corso..."
+            android:text="Rilevamento moduli vocali..."
             android:textColor="@color/accent_green"
             android:textSize="12sp" />
     </LinearLayout>
 
-    <TextView
+    <!-- Scrollable container for both installed and downloadable languages -->
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="MODULI VOCALI INSTALLATI E PRONTI"
-        android:textColor="@color/accent_green"
-        android:textSize="11sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.1"
-        android:layout_marginBottom="8dp" />
-
-    <!-- Container of installed languages -->
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:maxHeight="240dp"
-        android:background="#12FFFFFF"
-        android:padding="6dp"
-        android:layout_marginBottom="16dp">
+        android:maxHeight="380dp">
 
         <LinearLayout
-            android:id="@+id/installedLanguagesContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" />
-    </ScrollView>
+            android:orientation="vertical">
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/surface_border"
-        android:layout_marginBottom="16dp" />
+            <!-- Section 1: Installed Languages -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="MODULI VOCALI INSTALLATI E PRONTI"
+                android:textColor="@color/accent_green"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.1"
+                android:layout_marginBottom="8dp" />
 
-    <!-- Add/Download other languages section -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:background="@drawable/bg_event_pill"
-        android:padding="14dp">
+            <LinearLayout
+                android:id="@+id/installedLanguagesContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#12FFFFFF"
+                android:padding="6dp"
+                android:layout_marginBottom="16dp" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="➕ Vuoi aggiungere altre lingue?"
-            android:textColor="@color/white"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            <!-- Section 2: Downloadable Languages -->
+            <TextView
+                android:id="@+id/tvDownloadableTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="SCARICA NUOVE LINGUE OFFLINE"
+                android:textColor="@color/white"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.1"
+                android:layout_marginBottom="8dp" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Per usare Inglese, Spagnolo, Francese o altre lingue senza internet, scarica il modulo vocale offline nelle impostazioni del telefono (Servizi vocali Google)."
-            android:textColor="@color/text_secondary"
-            android:textSize="12sp"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="10dp" />
+            <LinearLayout
+                android:id="@+id/downloadableLanguagesContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#12FFFFFF"
+                android:padding="6dp"
+                android:layout_marginBottom="16dp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnOpenSpeechSettings"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Scarica Lingue Offline (Impostazioni)"
-            android:textColor="@color/black"
-            android:textStyle="bold"
-            app:backgroundTint="@color/accent_green"
-            app:cornerRadius="10dp" />
-    </LinearLayout>
+            <!-- Section 3: Manual Settings Help -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_event_pill"
+                android:padding="14dp"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="⚙️ Impostazioni Vocali Android"
+                    android:textColor="@color/white"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Se il download automatico non è supportato dal tuo dispositivo, apri le impostazioni di sistema per scaricare i pacchetti vocali (Gboard / Servizi vocali Google)."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="10dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnOpenSpeechSettings"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Apri Gestione Tastiere e Voce"
+                    android:textColor="@color/black"
+                    android:textStyle="bold"
+                    app:backgroundTint="@color/accent_green"
+                    app:cornerRadius="10dp" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
 </LinearLayout>

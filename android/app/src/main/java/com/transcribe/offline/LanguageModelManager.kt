@@ -223,8 +223,14 @@ object LanguageModelManager {
         val installedList = installedSet.map { getLanguageInfo(it, isInstalled = true) }
             .sortedBy { it.displayName }
 
+        val standardLanguages = listOf(
+            "en-US", "en-GB", "es-ES", "fr-FR", "de-DE", "pt-PT", "pt-BR",
+            "ru-RU", "zh-CN", "ja-JP", "ar-SA", "hi-IN", "nl-NL", "pl-PL",
+            "tr-TR", "uk-UA", "ro-RO", "el-GR", "sv-SE"
+        )
+
         val downloadableSet = mutableSetOf<String>()
-        for (tag in supportedTags) {
+        for (tag in (supportedTags + standardLanguages)) {
             val norm = normalizeTag(tag)
             if (norm.isNotBlank() && !installedSet.contains(norm)) {
                 downloadableSet.add(norm)
@@ -243,25 +249,29 @@ object LanguageModelManager {
      * Opens Android System / Google Speech Services settings screen directly to download offline language models.
      */
     fun openOfflineSpeechSettings(context: Context): Boolean {
-        // Prioritize official Android system settings that work across all OEM devices
+        // Prioritize settings that directly lead to keyboard voice typing and offline speech packs
         val candidateIntents = listOf(
-            // 1. Official Android platform Voice Input & Speech Services settings
-            Intent(Settings.ACTION_VOICE_INPUT_SETTINGS),
-            // 2. Android system speech / voice search settings
+            // 1. Android Input Methods / On-Screen Keyboards (Direct access to Gboard / Google Voice Typing settings gear)
+            Intent(Settings.ACTION_INPUT_METHOD_SETTINGS),
+            // 2. Direct Voice Search Settings Action
+            Intent("com.google.android.voicesearch.action.SETTINGS"),
+            // 3. Android platform voice search action
             Intent("android.speech.action.VOICE_SEARCH_SETTINGS"),
-            // 3. Android System Languages and Keyboard settings
-            Intent(Settings.ACTION_LOCALE_SETTINGS),
-            // 4. Dedicated Google Speech Services (com.google.android.tts) App Details
+            // 4. Google Quick Search Box VoiceSearchPreferences component
+            Intent().setComponent(ComponentName("com.google.android.googlequicksearchbox", "com.google.android.apps.gsa.settingsui.VoiceSearchPreferences")),
+            // 5. Google TTS / Speech Services settings
+            Intent().setComponent(ComponentName("com.google.android.tts", "com.google.android.apps.speech.tts.googletts.settings.GoogleTtsSettings")),
+            // 6. Application Details for Google Speech Services
             Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                 data = Uri.fromParts("package", "com.google.android.tts", null)
             },
-            // 5. Google App details settings
+            // 7. Application Details for Google App
             Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                 data = Uri.fromParts("package", "com.google.android.googlequicksearchbox", null)
             },
-            // 6. Direct Speech Recognition Settings Action
-            Intent("com.google.android.voicesearch.intent.action.OFFLINE_RECOGNITION_SETTINGS"),
-            // 7. General Android System Settings
+            // 8. Android System Languages and Keyboard settings
+            Intent(Settings.ACTION_LOCALE_SETTINGS),
+            // 9. General Android System Settings
             Intent(Settings.ACTION_SETTINGS)
         )
 
@@ -293,29 +303,37 @@ object LanguageModelManager {
     /**
      * Programmatically triggers speech model download on Android 14+ (API 34+) if supported by device engine.
      */
-    fun triggerModelDownloadIfSupported(context: Context, langTag: String, onFinished: (Boolean) -> Unit) {
+    fun triggerModelDownload(
+        context: Context,
+        langTag: String,
+        onProgress: (percent: Int) -> Unit,
+        onComplete: (success: Boolean, message: String) -> Unit
+    ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             try {
                 if (SpeechRecognizer.isOnDeviceRecognitionAvailable(context)) {
                     val recognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
                     val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                         putExtra(RecognizerIntent.EXTRA_LANGUAGE, langTag)
+                        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                     }
                     recognizer.triggerModelDownload(
                         intent,
                         ContextCompat.getMainExecutor(context),
                         object : android.speech.ModelDownloadListener {
-                            override fun onProgress(completedPercent: Int) {}
+                            override fun onProgress(completedPercent: Int) {
+                                onProgress(completedPercent)
+                            }
                             override fun onSuccess() {
                                 try { recognizer.destroy() } catch (e: Exception) {}
-                                onFinished(true)
+                                onComplete(true, "Modulo $langTag scaricato con successo!")
                             }
                             override fun onScheduled() {
-                                onFinished(true)
+                                onComplete(true, "Download programmato dal sistema (in attesa di Wi-Fi).")
                             }
                             override fun onError(error: Int) {
                                 try { recognizer.destroy() } catch (e: Exception) {}
-                                onFinished(false)
+                                onComplete(false, "Download diretto non riuscito (errore $error).")
                             }
                         }
                     )
@@ -325,6 +343,6 @@ object LanguageModelManager {
                 e.printStackTrace()
             }
         }
-        onFinished(false)
+        onComplete(false, "Download automatico non supportato su questo dispositivo.")
     }
 }
