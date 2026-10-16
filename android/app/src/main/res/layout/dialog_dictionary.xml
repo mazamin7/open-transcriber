@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/surface_dark"
+    android:padding="20dp">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_dictionary"
+            android:layout_marginEnd="10dp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Parole Personalizzate"
+            android:textColor="@color/white"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btnCloseDialog"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            app:tint="@color/text_secondary" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Aggiungi nomi propri o parole speciali affinché l'app le riconosca subito."
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Current Words ScrollView Container -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Parole salvate:"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="140dp"
+        android:background="#15FFFFFF"
+        android:padding="8dp">
+
+        <LinearLayout
+            android:id="@+id/entriesContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/surface_border"
+        android:layout_marginVertical="16dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Aggiungi nuova parola:"
+        android:textColor="@color/accent_green"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <EditText
+        android:id="@+id/etWord"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Nuova parola o nome..."
+        android:textColorHint="@color/text_secondary"
+        android:textColor="@color/white"
+        android:background="@drawable/bg_event_pill"
+        android:padding="14dp"
+        android:textSize="16sp"
+        android:inputType="textCapWords"
+        android:layout_marginBottom="16dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnAddEntry"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Aggiungi Parola"
+        android:textColor="@color/black"
+        android:textStyle="bold"
+        app:backgroundTint="@color/accent_green"
+        app:cornerRadius="12dp" />
+
+</LinearLayout>

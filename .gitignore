@@ -1,0 +1,39 @@
+# Built application files
+*.aab
+
+# Gradle files
+.gradle/
+build/
+android/.gradle/
+android/build/
+android/app/build/
+
+# Local configuration file (sdk path, etc)
+local.properties
+android/local.properties
+
+# Proguard folder
+proguard/
+
+# Log files
+*.log
+
+# Android Studio / IntelliJ IDEA
+*.iml
+.idea/
+android/.idea/
+.idea/caches/
+.idea/libraries/
+.idea/modules.xml
+.idea/workspace.xml
+
+# Keystore files
+*.jks
+*.keystore
+
+# External native build folder paths
+.cxx/
+
+# OS specific files
+.DS_Store
+Thumbs.db

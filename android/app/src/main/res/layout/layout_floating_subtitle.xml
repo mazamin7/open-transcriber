@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/floatingRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_floating_overlay"
+    android:padding="12dp">
+
+    <!-- Header bar with drag handle and quick controls -->
+    <LinearLayout
+        android:id="@+id/dragHandle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="6dp">
+
+        <!-- Visual Drag Pill -->
+        <View
+            android:layout_width="36dp"
+            android:layout_height="4dp"
+            android:background="#60FFFFFF"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="8dp" />
+
+        <ImageView
+            android:id="@+id/ivFloatingMic"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@android:drawable/ic_btn_speak_now" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="In ascolto..."
+            android:textColor="#00E676"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:layout_marginStart="6dp" />
+
+        <!-- Maximize back to full app button -->
+        <ImageButton
+            android:id="@+id/btnMaximizeApp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@android:color/transparent"
+            android:src="@android:drawable/ic_menu_crop"
+            android:padding="4dp"
+            android:contentDescription="Apri app a schermo intero" />
+
+        <!-- Close / Dismiss overlay button -->
+        <ImageButton
+            android:id="@+id/btnCloseOverlay"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@android:color/transparent"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:padding="4dp"
+            android:contentDescription="Chiudi sottotitoli"
+            android:layout_marginStart="6dp" />
+    </LinearLayout>
+
+    <!-- Subtitle text with high contrast shadow for any app background -->
+    <TextView
+        android:id="@+id/tvFloatingText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="In attesa di voce..."
+        android:textColor="#FFFFFF"
+        android:textSize="17sp"
+        android:textStyle="bold"
+        android:maxLines="4"
+        android:ellipsize="none"
+        android:shadowColor="#FF000000"
+        android:shadowDx="2"
+        android:shadowDy="2"
+        android:shadowRadius="4"
+        android:lineSpacingExtra="3dp"
+        android:paddingHorizontal="4dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="4dp" />
+
+</LinearLayout>

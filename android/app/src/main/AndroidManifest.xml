@@ -7,12 +7,28 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Keeps screen on continuously during conversations -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- System Alert Window to float subtitles over other apps -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Foreground Service to keep listening to speech while minimized -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
     <!--
       NOTICE: android.permission.INTERNET is deliberately OMITTED.
       The Android OS guarantees this app cannot access the internet,
       ensuring 100% air-gapped private communication for you and your partner.
     -->
+
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+    </queries>
 
     <application
         android:allowBackup="false"
@@ -25,6 +41,9 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:inheritShowWhenLocked="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
@@ -32,6 +51,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Foreground Service for Floating Subtitles over other apps -->
+        <service
+            android:name=".FloatingSubtitleService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
     </application>
 
 </manifest>

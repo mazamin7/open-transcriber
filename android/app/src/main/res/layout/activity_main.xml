@@ -41,10 +41,25 @@
             android:paddingVertical="2dp"
             android:layout_marginStart="8dp" />
 
+        <TextView
+            android:id="@+id/btnLanguageSelector"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🇮🇹 Italiano"
+            android:textColor="@color/white"
+            android:background="@drawable/bg_event_pill"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp"
+            android:layout_marginStart="8dp" />
+
         <View
             android:layout_width="0dp"
             android:layout_height="1dp"
             android:layout_weight="1" />
+
+
 
         <!-- Acoustic Event Badge -->
         <TextView
@@ -144,22 +159,22 @@
         android:id="@+id/bottomDock"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:paddingHorizontal="24dp"
-        android:paddingVertical="16dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- Keyboard / Type-Back Button -->
+        <!-- 1. Keyboard / Type-Back Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnKeyboard"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:insetLeft="0dp"
             android:insetTop="0dp"
             android:insetRight="0dp"
             android:insetBottom="0dp"
-            app:cornerRadius="28dp"
+            app:cornerRadius="24dp"
             app:backgroundTint="@color/surface_dark"
             app:icon="@android:drawable/ic_menu_edit"
             app:iconGravity="textStart"
@@ -167,34 +182,84 @@
             app:iconTint="@color/white"
             app:strokeColor="@color/surface_border"
             app:strokeWidth="1dp"
+            android:contentDescription="Rispondi con la tastiera"
+            app:layout_constraintHorizontal_chainStyle="spread_inside"
             app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btnDictionary"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
 
-        <!-- Big Center Microphone FAB -->
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fabMic"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:fabCustomSize="72dp"
-            app:backgroundTint="@color/accent_green"
-            app:tint="@color/black"
-            android:src="@android:drawable/ic_btn_speak_now"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
-
-        <!-- Clear Screen Button -->
+        <!-- 2. Custom Dictionary Button (Dizionario Nomi) -->
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnClear"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
+            android:id="@+id/btnDictionary"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:insetLeft="0dp"
             android:insetTop="0dp"
             android:insetRight="0dp"
             android:insetBottom="0dp"
-            app:cornerRadius="28dp"
+            app:cornerRadius="24dp"
+            app:backgroundTint="@color/surface_dark"
+            app:icon="@drawable/ic_dictionary"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconTint="@color/accent_green"
+            app:strokeColor="@color/surface_border"
+            app:strokeWidth="1dp"
+            android:contentDescription="Dizionario Nomi e Parole Speciali"
+            app:layout_constraintStart_toEndOf="@id/btnKeyboard"
+            app:layout_constraintEnd_toStartOf="@id/fabMic"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <!-- 3. Big Center Microphone FAB -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabMic"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:fabCustomSize="64dp"
+            app:backgroundTint="@color/accent_green"
+            app:tint="@color/black"
+            android:src="@android:drawable/ic_btn_speak_now"
+            android:contentDescription="Microfono"
+            app:layout_constraintStart_toEndOf="@id/btnDictionary"
+            app:layout_constraintEnd_toStartOf="@id/btnFloating"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <!-- 4. Floating Subtitle Button (Nuvoletta Sovrapposta) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnFloating"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            app:cornerRadius="24dp"
+            app:backgroundTint="@color/surface_dark"
+            app:icon="@drawable/ic_floating"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconTint="@color/accent_green"
+            app:strokeColor="@color/surface_border"
+            app:strokeWidth="1dp"
+            android:contentDescription="Nuvoletta Sottotitoli Flottanti"
+            app:layout_constraintStart_toEndOf="@id/fabMic"
+            app:layout_constraintEnd_toStartOf="@id/btnClear"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <!-- 5. Clear Screen Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnClear"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            app:cornerRadius="24dp"
             app:backgroundTint="@color/surface_dark"
             app:icon="@android:drawable/ic_menu_delete"
             app:iconGravity="textStart"
@@ -202,6 +267,8 @@
             app:iconTint="@color/text_secondary"
             app:strokeColor="@color/surface_border"
             app:strokeWidth="1dp"
+            android:contentDescription="Cancella testo"
+            app:layout_constraintStart_toEndOf="@id/btnFloating"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
