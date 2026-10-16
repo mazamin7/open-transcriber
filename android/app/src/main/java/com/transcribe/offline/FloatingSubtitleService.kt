@@ -52,6 +52,7 @@ class FloatingSubtitleService : Service() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var lastPartialWordCount = 0
     private val floatingTranscript = StringBuilder()
+    private var lastPendingPartial = ""
     private var wakeLock: android.os.PowerManager.WakeLock? = null
     private var pendingIntent: PendingIntent? = null
     private var lastNotificationTime = 0L
@@ -70,6 +71,13 @@ class FloatingSubtitleService : Service() {
     override fun onCreate() {
         super.onCreate()
         customWordManager = CustomWordManager(this)
+
+        // Initialize shared transcript session and pre-fill bubble with latest spoken words
+        TranscriptSessionManager.init(this)
+        val recentSnippet = TranscriptSessionManager.getRecentSnippet(200)
+        if (recentSnippet.isNotEmpty()) {
+            floatingTranscript.append(recentSnippet).append(" ")
+        }
 
         // Keep CPU active for continuous speech recognition even when screen locks
         try {
@@ -244,6 +252,8 @@ class FloatingSubtitleService : Service() {
             }
 
             val tvFloatingText = floatingView?.findViewById<TextView>(R.id.tvFloatingText)
+            val initialText = if (floatingTranscript.isNotEmpty()) floatingTranscript.toString().trim() else "In attesa di voce..."
+            tvFloatingText?.text = initialText
             tvFloatingText?.setOnClickListener {
                 maximizeToFullApp()
             }
@@ -294,6 +304,8 @@ class FloatingSubtitleService : Service() {
         val service = OnDeviceSystemSpeechService(this, object : OnDeviceSystemSpeechService.Listener {
             override fun onPartialResult(hypothesis: String) {
                 if (hypothesis.isNotEmpty()) {
+                    lastPendingPartial = hypothesis
+                    TranscriptSessionManager.setInterim(hypothesis)
                     checkAndTriggerWordHaptic(hypothesis, isFinal = false)
                     mainHandler.post {
                         tvFloatingText?.text = hypothesis
@@ -305,6 +317,8 @@ class FloatingSubtitleService : Service() {
 
             override fun onFinalResult(sentence: String) {
                 if (sentence.isNotEmpty()) {
+                    lastPendingPartial = ""
+                    TranscriptSessionManager.appendSentence(sentence, this@FloatingSubtitleService)
                     checkAndTriggerWordHaptic(sentence, isFinal = true)
                     floatingTranscript.append(sentence).append(" ")
                     if (floatingTranscript.length > 250) {
@@ -422,6 +436,10 @@ class FloatingSubtitleService : Service() {
     }
 
     private fun maximizeToFullApp() {
+        if (lastPendingPartial.isNotBlank()) {
+            TranscriptSessionManager.commitInterimIfPresent(this)
+            lastPendingPartial = ""
+        }
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
         }
@@ -431,6 +449,10 @@ class FloatingSubtitleService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        if (lastPendingPartial.isNotBlank()) {
+            TranscriptSessionManager.commitInterimIfPresent(this)
+            lastPendingPartial = ""
+        }
         systemSpeechService?.stop()
         systemSpeechService = null
         try {

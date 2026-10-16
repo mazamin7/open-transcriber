@@ -46,7 +46,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private var lastSpeechTime = 0L
     private val silenceGapThresholdMs = 2500L
 
-    private val fullTranscript = StringBuilder()
     private val RECORD_AUDIO_REQUEST_CODE = 101
     private var lastPartialWordCount = 0
 
@@ -85,6 +84,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         // Initialize local custom words manager
         customWordManager = CustomWordManager(this)
+
+        // Initialize shared transcript session and restore any active conversation
+        TranscriptSessionManager.init(this)
+        syncTranscriptUi()
 
         // Ensure notification channel is registered in system settings
         createNotificationChannelIfNeeded()
@@ -150,7 +153,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
 
         binding.btnClear.setOnClickListener {
-            fullTranscript.clear()
+            TranscriptSessionManager.clear(this)
             binding.tvTranscript.text = ""
             binding.tvInterim.text = ""
             binding.tvEmptyPrompt.visibility = View.VISIBLE
@@ -268,6 +271,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             override fun onPartialResult(hypothesis: String) {
                 if (hypothesis.isNotEmpty()) {
                     checkAndTriggerWordHaptic(hypothesis, isFinal = false)
+                    TranscriptSessionManager.setInterim(hypothesis)
                     binding.tvEmptyPrompt.visibility = View.GONE
                     binding.tvInterim.text = hypothesis
                     scrollToBottom()
@@ -277,9 +281,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             override fun onFinalResult(sentence: String) {
                 if (sentence.isNotEmpty()) {
                     checkAndTriggerWordHaptic(sentence, isFinal = true)
+                    TranscriptSessionManager.appendSentence(sentence, this@MainActivity)
                     binding.tvEmptyPrompt.visibility = View.GONE
-                    fullTranscript.append(sentence).append(" ")
-                    binding.tvTranscript.text = fullTranscript.toString()
+                    binding.tvTranscript.text = TranscriptSessionManager.getFullTranscript()
                     binding.tvInterim.text = ""
                     scrollToBottom()
                 } else {
@@ -418,9 +422,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun appendReplyToTranscript(text: String) {
+        TranscriptSessionManager.appendReply(text, this)
         binding.tvEmptyPrompt.visibility = View.GONE
-        fullTranscript.append("\n[Risposta]: ").append(text).append("\n\n")
-        binding.tvTranscript.text = fullTranscript.toString()
+        binding.tvTranscript.text = TranscriptSessionManager.getFullTranscript()
         scrollToBottom()
     }
 
@@ -691,12 +695,36 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
+    private fun syncTranscriptUi() {
+        TranscriptSessionManager.init(this)
+        val full = TranscriptSessionManager.getFullTranscript()
+        val interim = TranscriptSessionManager.getInterim()
+        if (full.isNotEmpty()) {
+            binding.tvEmptyPrompt.visibility = View.GONE
+            binding.tvTranscript.text = full
+        } else if (interim.isEmpty()) {
+            binding.tvEmptyPrompt.visibility = View.VISIBLE
+            binding.tvTranscript.text = ""
+        }
+        binding.tvInterim.text = interim
+        scrollToBottom()
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        syncTranscriptUi()
+    }
+
     override fun onResume() {
         super.onResume()
         if (isLaunchingFloating) {
             isLaunchingFloating = false
             return
         }
+
+        // Synchronize and restore live transcript from floating subtitles session
+        syncTranscriptUi()
 
         if (isAwaitingNotificationPermission) {
             isAwaitingNotificationPermission = false
