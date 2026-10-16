@@ -11,13 +11,12 @@
 | **Zero Permessi Internet** | Nessun permesso di rete (`android.permission.INTERNET` assente). Privacy totale al 100%. |
 | **Motore Vocale Neurale On-Device** | Sfrutta il motore neurale on-device di Android (`SpeechRecognizer.createOnDeviceSpeechRecognizer`). |
 | **Selettore Lingua Dinamico** | Scelta rapida della lingua con pill dedicata in alto: Italiano 🇮🇹, English (US) 🇺🇸, English (UK) 🇬🇧, Español 🇪🇸, Français 🇫🇷, Deutsch 🇩🇪, Português 🇧🇷, Русский 🇷🇺, 中文 🇨🇳, 日本語 🇯🇵. |
-| **Sottotitoli Flottanti Sovrapposti** | Finestra trasparente e trascinabile che mostra i sottotitoli in tempo reale sopra WhatsApp e qualsiasi altra app (`FloatingSubtitleService`). |
+| **Sottotitoli Fluttuanti Sovrapposti** | Finestra trasparente e trascinabile che mostra i sottotitoli in tempo reale sopra WhatsApp e qualsiasi altra app (`FloatingSubtitleService`). |
 | **Doppio Comportamento Blocco Schermo** | Gestione intelligente a due livelli sul blocco schermo (App a schermo intero vs Bolla sottotitoli). |
 | **Parole Personalizzate (Contextual Biasing)** | Dizionario personalizzato: i termini aggiunti vengono iniettati direttamente nel decoder neurale (`EXTRA_BIASING_STRINGS`), migliorando il riconoscimento di nomi propri e termini tecnici. |
 | **Feedback Aptico per Parola (Tick)** | Vibrazione ultra-delicata (`EFFECT_TICK`) a ogni parola riconosciuta in tempo reale, per confermare la trascrizione anche senza guardare costantemente lo schermo. |
 | **Modalità Tavolo 180° (Flip)** | Ruota la risposta capovolta a 180° per farla leggere comodamente all'interlocutore seduto di fronte. |
 | **Sintesi Vocale Offline (TTS)** | Pronuncia vocalmente le risposte digitate utilizzando le voci offline del sistema, adattandosi automaticamente alla lingua selezionata. |
-| **Zero Suoni / Beep Silenziati** | Silenziamento totale dei segnali acustici di avvio/stop del registratore vocale per non disturbare. |
 
 ---
 
@@ -36,8 +35,6 @@ L'applicazione gestisce il blocco schermo in modo ottimale a seconda della modal
 - **Comportamento:** 
   - La notifica si posiziona in cima alle notifiche sul blocco schermo e trascrive in tempo reale.
   - Le tue altre notifiche (WhatsApp, SMS, ecc.) rimangono perfettamente visibili subito sotto.
-  - **Nessun tasto Indietro necessario:** per sbloccare il telefono basta appoggiare l'impronta o scorrere normalmente.
-  - **Solo dopo aver sbloccato il telefono**, la bolla fluttuante riappare automaticamente sopra le tue app.
   - Dalla notifica del blocco schermo puoi anche premere "Apri App" o "Chiudi" con i pulsanti dedicati.
 
 ---
