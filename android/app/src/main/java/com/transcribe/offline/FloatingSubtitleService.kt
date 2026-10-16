@@ -74,7 +74,7 @@ class FloatingSubtitleService : Service() {
         // Keep CPU active for continuous speech recognition even when screen locks
         try {
             val powerManager = getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
-            wakeLock = powerManager?.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "LiveTranscribe::FloatingWakeLock")?.apply {
+            wakeLock = powerManager?.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "OpenTranscribe::FloatingWakeLock")?.apply {
                 setReferenceCounted(false)
                 acquire(12 * 60 * 60 * 1000L)
             }
@@ -101,7 +101,7 @@ class FloatingSubtitleService : Service() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val channel = NotificationChannel(
                     CHANNEL_ID,
-                    "Trascrizione Istantanea Offline",
+                    "Open Transcriber - Sottotitoli",
                     NotificationManager.IMPORTANCE_DEFAULT
                 ).apply {
                     description = "Mostra i sottotitoli in tempo reale sopra le notifiche e nel blocco schermo"
@@ -134,7 +134,7 @@ class FloatingSubtitleService : Service() {
             )
 
             val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("🎙️ Trascrizione Istantanea")
+                .setContentTitle("🎙️ Open Transcriber")
                 .setContentText("In ascolto... Parla vicino al telefono")
                 .setStyle(NotificationCompat.BigTextStyle().bigText("In ascolto... Parla vicino al telefono"))
                 .setSmallIcon(R.mipmap.ic_launcher)
@@ -179,7 +179,7 @@ class FloatingSubtitleService : Service() {
             )
 
             val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("🎙️ Trascrizione Istantanea")
+                .setContentTitle("🎙️ Open Transcriber")
                 .setContentText(text)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(text))
                 .setSmallIcon(R.mipmap.ic_launcher)

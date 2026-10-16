@@ -303,7 +303,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         try {
             val powerManager = getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
             if (wakeLock == null) {
-                wakeLock = powerManager?.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "LiveTranscribe::MainWakeLock")
+                wakeLock = powerManager?.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "OpenTranscribe::MainWakeLock")
             }
             if (wakeLock?.isHeld == false) {
                 wakeLock?.acquire(60 * 60 * 1000L)
@@ -409,9 +409,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private fun speakText(text: String) {
         systemSpeechService?.temporaryUnmuteForTts()
         val params = Bundle().apply {
-            putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "LiveTranscribeReply")
+            putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "OpenTranscribeReply")
         }
-        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, "LiveTranscribeReply")
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, "OpenTranscribeReply")
     }
 
     private fun scrollToBottom() {

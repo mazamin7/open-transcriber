@@ -1,6 +1,6 @@
-# Live Transcribe Offline (Android Nativo) 🎙️📱
-> **App Android nativa per trascrizione vocale istantanea 100% Offline & Air-Gapped**  
-> Progettata per la comunicazione tra persone sorde e udenti senza alcuna connessione internet.
+# Open Transcriber 🎙️📱
+> **App Android nativa per trascrizione vocale istantanea e sottotitoli in tempo reale 100% Offline & Air-Gapped**  
+> Progettata per la comunicazione accessibile tra persone sorde e udenti senza alcuna connessione internet.
 
 ---
 
@@ -44,8 +44,8 @@ L'applicazione gestisce il blocco schermo in modo ottimale a seconda della modal
 
 ## 📦 Installazione Rapida
 
-Il file APK già compilato e pronto all'uso è disponibile nella root del progetto:
-- **`TrascrizioneOffline-v1.0.0.apk`** (~6.78 MB)
+Il file APK già compilato e pronto all'uso è disponibile nella sezione **Releases** di GitHub o nella root del progetto:
+- **`OpenTranscriber-v1.0.0.apk`**
 
 Basta trasferirlo sul telefono Android e aprirlo per installarlo.
 
@@ -68,8 +68,8 @@ L'APK generato si troverà in:
 ## 📁 Struttura del Progetto
 
 ```
-transcriber/
-├── TrascrizioneOffline-v1.0.0.apk      # APK nativo compilato pronto all'uso
+open-transcriber/
+├── OpenTranscriber-v1.0.0.apk          # APK nativo compilato pronto all'uso
 ├── README.md                           # Documentazione completa
 └── android/
     ├── app/
@@ -88,3 +88,9 @@ transcriber/
     ├── build.gradle
     └── gradlew.bat
 ```
+
+---
+
+## ⚖️ Note Legali e Trademark Disclaimer
+
+Questo progetto open-source è indipendente e non è affiliato, sponsorizzato o approvato da Google LLC. "Live Transcribe" e "Trascrizione Istantanea" sono marchi di Google LLC.
