@@ -7,10 +7,15 @@ import android.content.Context
  * Single source of truth for the entire conversation history.
  * Ensures the app and the floating bubble share the EXACT same continuous text stream.
  * Persists across app closures and phone reboots using AES-256-GCM hardware encryption.
- * Supports Incognito Mode (zero disk writes, volatile RAM only).
+ * Supports strictly isolated Incognito Mode (zero disk writes, volatile RAM only).
+ * Switching between encrypted and incognito mode cleanly separates and hides the respective buffers.
  */
 object TranscriptSessionManager {
-    private val transcriptBuilder = StringBuilder()
+    // Persistent disk-backed buffer (AES-256 encrypted)
+    private val persistentBuilder = StringBuilder()
+    // Volatile RAM-only incognito buffer (zero disk writes, wiped on exit/reboot)
+    private val incognitoBuilder = StringBuilder()
+
     private var lastInterimText = ""
     private const val PREFS_NAME = "transcript_persistent_storage"
     private const val KEY_ENCRYPTED_TRANSCRIPT = "encrypted_transcript_aes256"
@@ -26,12 +31,16 @@ object TranscriptSessionManager {
 
     private val listeners = mutableListOf<Listener>()
 
+    private fun getActiveBuilder(): StringBuilder {
+        return if (isIncognito) incognitoBuilder else persistentBuilder
+    }
+
     @Synchronized
     fun registerListener(listener: Listener) {
         if (!listeners.contains(listener)) {
             listeners.add(listener)
         }
-        listener.onTranscriptChanged(transcriptBuilder.toString(), lastInterimText)
+        listener.onTranscriptChanged(getActiveBuilder().toString(), lastInterimText)
         listener.onIncognitoChanged(isIncognito)
     }
 
@@ -50,14 +59,12 @@ object TranscriptSessionManager {
                 val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 isIncognito = prefs.getBoolean(KEY_INCOGNITO_MODE, false)
 
-                // Only load saved transcript from disk if not in incognito mode
-                if (!isIncognito) {
-                    val encrypted = prefs.getString(KEY_ENCRYPTED_TRANSCRIPT, "") ?: ""
-                    if (encrypted.isNotEmpty() && transcriptBuilder.isEmpty()) {
-                        val decrypted = CryptoManager.decrypt(encrypted)
-                        if (decrypted.isNotEmpty()) {
-                            transcriptBuilder.append(decrypted)
-                        }
+                // Always restore the persistent encrypted transcript from disk
+                val encrypted = prefs.getString(KEY_ENCRYPTED_TRANSCRIPT, "") ?: ""
+                if (encrypted.isNotEmpty() && persistentBuilder.isEmpty()) {
+                    val decrypted = CryptoManager.decrypt(encrypted)
+                    if (decrypted.isNotEmpty()) {
+                        persistentBuilder.append(decrypted)
                     }
                 }
             } catch (e: Exception) {
@@ -72,8 +79,41 @@ object TranscriptSessionManager {
 
     @Synchronized
     fun setIncognitoMode(active: Boolean, context: Context? = null) {
-        isIncognito = active
+        if (isIncognito == active) return
+
         val ctx = context?.applicationContext ?: appContext
+        isIncognito = active
+
+        if (active) {
+            // ENTERING INCOGNITO:
+            // Do NOT show what was in persistent!
+            // Start fresh with an empty volatile buffer.
+            incognitoBuilder.clear()
+            lastInterimText = ""
+        } else {
+            // EXITING INCOGNITO BACK TO PERSISTENT:
+            // Do NOT show what was in incognito!
+            // Wipe volatile incognito buffer completely.
+            incognitoBuilder.clear()
+            lastInterimText = ""
+
+            // Ensure persistentBuilder has the saved encrypted transcript from disk
+            if (persistentBuilder.isEmpty() && ctx != null) {
+                try {
+                    val prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    val encrypted = prefs.getString(KEY_ENCRYPTED_TRANSCRIPT, "") ?: ""
+                    if (encrypted.isNotEmpty()) {
+                        val decrypted = CryptoManager.decrypt(encrypted)
+                        if (decrypted.isNotEmpty()) {
+                            persistentBuilder.append(decrypted)
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+
         ctx?.let {
             try {
                 it.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -84,16 +124,15 @@ object TranscriptSessionManager {
                 e.printStackTrace()
             }
         }
-        if (!active) {
-            // Persist current memory buffer when leaving incognito mode
-            persist()
-        }
+
+        // Notify all UI listeners of the buffer change and incognito status
+        notifyListeners()
         notifyIncognitoChanged()
     }
 
     @Synchronized
     fun getFullTranscript(): String {
-        return transcriptBuilder.toString()
+        return getActiveBuilder().toString()
     }
 
     @Synchronized
@@ -105,13 +144,16 @@ object TranscriptSessionManager {
             appContext = context.applicationContext
         }
 
-        if (transcriptBuilder.isNotEmpty() && !transcriptBuilder.endsWith(" ") && !transcriptBuilder.endsWith("\n")) {
-            transcriptBuilder.append(" ")
+        val builder = getActiveBuilder()
+        if (builder.isNotEmpty() && !builder.endsWith(" ") && !builder.endsWith("\n")) {
+            builder.append(" ")
         }
-        transcriptBuilder.append(trimmed).append(" ")
+        builder.append(trimmed).append(" ")
         lastInterimText = ""
 
-        persist()
+        if (!isIncognito) {
+            persist()
+        }
         notifyListeners()
     }
 
@@ -124,13 +166,16 @@ object TranscriptSessionManager {
             appContext = context.applicationContext
         }
 
-        if (transcriptBuilder.isNotEmpty() && !transcriptBuilder.endsWith("\n")) {
-            transcriptBuilder.append("\n")
+        val builder = getActiveBuilder()
+        if (builder.isNotEmpty() && !builder.endsWith("\n")) {
+            builder.append("\n")
         }
-        transcriptBuilder.append("[Risposta]: ").append(trimmed).append("\n\n")
+        builder.append("[Risposta]: ").append(trimmed).append("\n\n")
         lastInterimText = ""
 
-        persist()
+        if (!isIncognito) {
+            persist()
+        }
         notifyListeners()
     }
 
@@ -159,17 +204,22 @@ object TranscriptSessionManager {
 
     @Synchronized
     fun clear(context: Context? = null) {
-        transcriptBuilder.clear()
-        lastInterimText = ""
-        val ctx = context?.applicationContext ?: appContext
-        ctx?.let {
-            try {
-                it.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                    .edit()
-                    .remove(KEY_ENCRYPTED_TRANSCRIPT)
-                    .commit()
-            } catch (e: Exception) {
-                e.printStackTrace()
+        if (isIncognito) {
+            incognitoBuilder.clear()
+            lastInterimText = ""
+        } else {
+            persistentBuilder.clear()
+            lastInterimText = ""
+            val ctx = context?.applicationContext ?: appContext
+            ctx?.let {
+                try {
+                    it.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                        .edit()
+                        .remove(KEY_ENCRYPTED_TRANSCRIPT)
+                        .commit()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         }
         notifyListeners()
@@ -181,7 +231,7 @@ object TranscriptSessionManager {
 
         appContext?.let { ctx ->
             try {
-                val plain = transcriptBuilder.toString()
+                val plain = persistentBuilder.toString()
                 if (plain.isEmpty()) {
                     ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                         .edit()
@@ -202,7 +252,7 @@ object TranscriptSessionManager {
     }
 
     private fun notifyListeners() {
-        val full = transcriptBuilder.toString()
+        val full = getActiveBuilder().toString()
         val interim = lastInterimText
         val copy = ArrayList(listeners)
         for (listener in copy) {

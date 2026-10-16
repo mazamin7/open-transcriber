@@ -471,7 +471,8 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
             val floatingScrollView = floatingView?.findViewById<ScrollView>(R.id.floatingScrollView)
 
             if (fullText.isEmpty() && interimText.isEmpty()) {
-                tvFloatingText?.text = "In attesa di voce..."
+                val isIncognito = TranscriptSessionManager.isIncognitoMode()
+                tvFloatingText?.text = if (isIncognito) "🕶️ Incognito (In ascolto...)" else "In attesa di voce..."
                 tvFloatingInterim?.text = ""
             } else {
                 tvFloatingText?.text = fullText
@@ -496,9 +497,11 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
     override fun onIncognitoChanged(isIncognito: Boolean) {
         mainHandler.post {
             val tvFloatingStatus = floatingView?.findViewById<TextView>(R.id.tvFloatingStatus)
+            val tvFloatingIncognitoWatermark = floatingView?.findViewById<TextView>(R.id.tvFloatingIncognitoWatermark)
             if (isIncognito) {
                 tvFloatingStatus?.text = "🕶️ Incognito"
                 tvFloatingStatus?.setTextColor(Color.parseColor("#FFD54F"))
+                tvFloatingIncognitoWatermark?.visibility = View.VISIBLE
                 params?.let { p ->
                     p.flags = p.flags or WindowManager.LayoutParams.FLAG_SECURE
                     if (floatingView != null) {
@@ -508,6 +511,7 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
             } else {
                 tvFloatingStatus?.text = "In ascolto..."
                 tvFloatingStatus?.setTextColor(Color.parseColor("#00E676"))
+                tvFloatingIncognitoWatermark?.visibility = View.GONE
                 params?.let { p ->
                     p.flags = p.flags and WindowManager.LayoutParams.FLAG_SECURE.inv()
                     if (floatingView != null) {

@@ -66,51 +66,69 @@
     </LinearLayout>
 
     <!-- Subtitle text with high contrast shadow and scrollable continuous history -->
-    <ScrollView
-        android:id="@+id/floatingScrollView"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:scrollbars="none"
-        android:fadingEdge="vertical"
-        android:paddingHorizontal="4dp"
-        android:paddingTop="2dp"
-        android:paddingBottom="4dp">
+        android:layout_height="wrap_content">
 
-        <LinearLayout
+        <!-- Semi-Transparent Incognito Watermark for Floating Overlay -->
+        <TextView
+            android:id="@+id/tvFloatingIncognitoWatermark"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="🕶️"
+            android:textSize="56sp"
+            android:alpha="0.22"
+            android:clickable="false"
+            android:focusable="false"
+            android:visibility="gone" />
+
+        <ScrollView
+            android:id="@+id/floatingScrollView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:scrollbars="none"
+            android:fadingEdge="vertical"
+            android:paddingHorizontal="4dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="4dp">
 
-            <!-- Full Conversation History (matches MainActivity exactly) -->
-            <TextView
-                android:id="@+id/tvFloatingText"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="In attesa di voce..."
-                android:textColor="#FFFFFF"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:shadowColor="#FF000000"
-                android:shadowDx="2"
-                android:shadowDy="2"
-                android:shadowRadius="4"
-                android:lineSpacingExtra="3dp" />
+                android:orientation="vertical">
 
-            <!-- Live in-progress utterance (accent green) -->
-            <TextView
-                android:id="@+id/tvFloatingInterim"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="#00E676"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:shadowColor="#FF000000"
-                android:shadowDx="2"
-                android:shadowDy="2"
-                android:shadowRadius="4"
-                android:lineSpacingExtra="3dp" />
+                <!-- Full Conversation History (matches MainActivity exactly) -->
+                <TextView
+                    android:id="@+id/tvFloatingText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="In attesa di voce..."
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:shadowColor="#FF000000"
+                    android:shadowDx="2"
+                    android:shadowDy="2"
+                    android:shadowRadius="4"
+                    android:lineSpacingExtra="3dp" />
 
-        </LinearLayout>
-    </ScrollView>
+                <!-- Live in-progress utterance (accent green) -->
+                <TextView
+                    android:id="@+id/tvFloatingInterim"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#00E676"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:shadowColor="#FF000000"
+                    android:shadowDx="2"
+                    android:shadowDy="2"
+                    android:shadowRadius="4"
+                    android:lineSpacingExtra="3dp" />
+
+            </LinearLayout>
+        </ScrollView>
+    </FrameLayout>
 
 </LinearLayout>

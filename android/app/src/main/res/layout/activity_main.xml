@@ -146,6 +146,50 @@
         </LinearLayout>
     </ScrollView>
 
+    <!-- Incognito Mode Semi-Transparent Watermark (Center of Screen) -->
+    <LinearLayout
+        android:id="@+id/incognitoWatermark"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:clickable="false"
+        android:focusable="false"
+        android:alpha="0.22"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/topBar"
+        app:layout_constraintBottom_toTopOf="@id/quickChipsScroll"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🕶️"
+            android:textSize="96sp"
+            android:gravity="center" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MODALITÀ INCOGNITO"
+            android:textColor="#FFD54F"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.15"
+            android:gravity="center"
+            android:layout_marginTop="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Memoria RAM • Zero Tracce su Disco"
+            android:textColor="@color/white"
+            android:textSize="13sp"
+            android:gravity="center"
+            android:layout_marginTop="4dp" />
+    </LinearLayout>
+
     <!-- Quick Response Chips Scroll -->
     <HorizontalScrollView
         android:id="@+id/quickChipsScroll"

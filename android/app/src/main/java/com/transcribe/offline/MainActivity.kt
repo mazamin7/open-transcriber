@@ -703,12 +703,13 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
 
     override fun onTranscriptChanged(fullText: String, interimText: String) {
         runOnUiThread {
+            val isIncognito = TranscriptSessionManager.isIncognitoMode()
             if (fullText.isNotEmpty()) {
                 binding.tvEmptyPrompt.visibility = View.GONE
                 binding.tvTranscript.text = fullText
-            } else if (interimText.isEmpty()) {
-                binding.tvEmptyPrompt.visibility = View.VISIBLE
+            } else {
                 binding.tvTranscript.text = ""
+                binding.tvEmptyPrompt.visibility = if (interimText.isEmpty() && !isIncognito) View.VISIBLE else View.GONE
             }
             binding.tvInterim.text = interimText
             scrollToBottom()
@@ -720,10 +721,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
             if (isIncognito) {
                 binding.btnIncognito.text = "🕶️ Incognito"
                 binding.btnIncognito.setTextColor(Color.parseColor("#FFD54F"))
+                binding.incognitoWatermark.visibility = View.VISIBLE
                 window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
             } else {
                 binding.btnIncognito.text = "🔒 Criptato"
                 binding.btnIncognito.setTextColor(ContextCompat.getColor(this, R.color.white))
+                binding.incognitoWatermark.visibility = View.GONE
                 window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
             }
         }
@@ -734,7 +737,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
         if (!currentlyIncognito) {
             AlertDialog.Builder(this)
                 .setTitle("Attiva Modalità Incognito 🕶️")
-                .setMessage("In Modalità Incognito:\n\n• Le trascrizioni rimangono SOLO nella memoria volatile (RAM) e non vengono salvate sul disco del telefono.\n• Al riavvio del telefono o alla chiusura forzata dell'app, la cronologia svanirà senza lasciare tracce.\n• Vengono bloccati screenshot e registrazioni dello schermo per massima privacy.")
+                .setMessage("In Modalità Incognito:\n\n• La conversazione persistente viene nascosta e protetta.\n• Le nuove trascrizioni rimangono SOLO nella memoria volatile (RAM) e non vengono salvate su disco.\n• Vengono bloccati screenshot e registrazioni dello schermo.\n• Viene mostrato il simbolo incognito in trasparenza.")
                 .setPositiveButton("Attiva Incognito") { _, _ ->
                     TranscriptSessionManager.setIncognitoMode(true, this)
                     Toast.makeText(this, "Modalità Incognito ATTIVA", Toast.LENGTH_SHORT).show()
@@ -744,10 +747,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
         } else {
             AlertDialog.Builder(this)
                 .setTitle("Disattiva Modalità Incognito 🔒")
-                .setMessage("Vuoi tornare alla Modalità Criptata?\n\nLe trascrizioni correnti e future torneranno a essere salvate nella memoria fisica con crittografia hardware AES-256 (Android KeyStore), persistendo anche al riavvio del telefono.")
-                .setPositiveButton("Attiva Memoria Criptata") { _, _ ->
+                .setMessage("Vuoi tornare alla Modalità Criptata?\n\nLa sessione incognito temporanea svanirà e verrà ripristinata la tua cronologia salvata con crittografia hardware AES-256 (Android KeyStore).")
+                .setPositiveButton("Ripristina Cronologia Criptata") { _, _ ->
                     TranscriptSessionManager.setIncognitoMode(false, this)
-                    Toast.makeText(this, "Memoria Criptata AES-256 ATTIVA", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Cronologia Criptata AES-256 RIPRISTINATA", Toast.LENGTH_SHORT).show()
                 }
                 .setNegativeButton("Annulla", null)
                 .show()
