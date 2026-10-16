@@ -27,6 +27,8 @@ object TranscriptSessionManager {
     interface Listener {
         fun onTranscriptChanged(fullText: String, interimText: String)
         fun onIncognitoChanged(isIncognito: Boolean) {}
+        fun onAudioLevel(level: Float) {}
+        fun onAcousticEvent(event: String) {}
     }
 
     private val listeners = mutableListOf<Listener>()
@@ -145,10 +147,10 @@ object TranscriptSessionManager {
         }
 
         val builder = getActiveBuilder()
-        if (builder.isNotEmpty() && !builder.endsWith(" ") && !builder.endsWith("\n")) {
-            builder.append(" ")
+        if (builder.isNotEmpty() && !builder.endsWith("\n")) {
+            builder.append("\n")
         }
-        builder.append(trimmed).append(" ")
+        builder.append(trimmed)
         lastInterimText = ""
 
         if (!isIncognito) {
@@ -170,7 +172,7 @@ object TranscriptSessionManager {
         if (builder.isNotEmpty() && !builder.endsWith("\n")) {
             builder.append("\n")
         }
-        builder.append("[Risposta]: ").append(trimmed).append("\n\n")
+        builder.append("[Risposta]: ").append(trimmed)
         lastInterimText = ""
 
         if (!isIncognito) {
@@ -270,6 +272,30 @@ object TranscriptSessionManager {
         for (listener in copy) {
             try {
                 listener.onIncognitoChanged(active)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    @Synchronized
+    fun notifyAudioLevel(level: Float) {
+        val copy = ArrayList(listeners)
+        for (listener in copy) {
+            try {
+                listener.onAudioLevel(level)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    @Synchronized
+    fun notifyAcousticEvent(event: String) {
+        val copy = ArrayList(listeners)
+        for (listener in copy) {
+            try {
+                listener.onAcousticEvent(event)
             } catch (e: Exception) {
                 e.printStackTrace()
             }

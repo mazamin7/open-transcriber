@@ -255,6 +255,34 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
     }
 
     private fun startListening() {
+        if (FloatingSubtitleService.isRunning) {
+            isListening = true
+            binding.fabMic.backgroundTintList = ContextCompat.getColorStateList(this, android.R.color.holo_red_dark)
+            binding.audioVisualizer.setListening(true)
+            val inAppIntent = Intent(this, FloatingSubtitleService::class.java).apply {
+                action = FloatingSubtitleService.ACTION_SET_IN_APP_FOREGROUND
+                putExtra(FloatingSubtitleService.EXTRA_IN_APP, true)
+            }
+            startService(inAppIntent)
+            return
+        }
+
+        if (areNotificationsEnabled()) {
+            val serviceIntent = Intent(this, FloatingSubtitleService::class.java).apply {
+                action = FloatingSubtitleService.ACTION_SET_IN_APP_FOREGROUND
+                putExtra(FloatingSubtitleService.EXTRA_IN_APP, true)
+            }
+            try {
+                ContextCompat.startForegroundService(this, serviceIntent)
+                isListening = true
+                binding.fabMic.backgroundTintList = ContextCompat.getColorStateList(this, android.R.color.holo_red_dark)
+                binding.audioVisualizer.setListening(true)
+                return
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
         startSystemSpeechListening()
     }
 
@@ -329,6 +357,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
     }
 
     private fun stopListening() {
+        if (FloatingSubtitleService.isRunning) {
+            val stopIntent = Intent(this, FloatingSubtitleService::class.java).apply {
+                action = FloatingSubtitleService.ACTION_STOP_SERVICE
+            }
+            startService(stopIntent)
+        }
         systemSpeechService?.stop()
         systemSpeechService = null
         isListening = false
@@ -701,13 +735,14 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
             val channel = NotificationChannel(
                 FloatingSubtitleService.CHANNEL_ID,
-                "Open Transcriber - Sottotitoli",
-                NotificationManager.IMPORTANCE_DEFAULT
+                "Open Transcriber - Trascrizione Live",
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Mostra i sottotitoli in tempo reale sopra le notifiche e nel blocco schermo"
+                description = "Mostra la trascrizione vocale in tempo reale sempre in alto nella barra notifiche e nel blocco schermo"
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 setSound(null, null)
                 enableVibration(false)
+                setShowBadge(true)
             }
             notificationManager?.createNotificationChannel(channel)
         }
@@ -851,6 +886,18 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
         }
     }
 
+    override fun onAudioLevel(level: Float) {
+        runOnUiThread {
+            binding.audioVisualizer.setLevel(level)
+        }
+    }
+
+    override fun onAcousticEvent(event: String) {
+        runOnUiThread {
+            binding.tvSoundEvent.text = event
+        }
+    }
+
     private fun showIncognitoToggleDialog() {
         val currentlyIncognito = TranscriptSessionManager.isIncognitoMode()
         if (!currentlyIncognito) {
@@ -919,12 +966,33 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
             wasRequestingNotificationsForFloating = false
         }
 
-        stopService(Intent(this, FloatingSubtitleService::class.java))
-        binding.root.postDelayed({
-            if (!isListening && ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                startListening()
+        if (FloatingSubtitleService.isRunning) {
+            val inAppIntent = Intent(this, FloatingSubtitleService::class.java).apply {
+                action = FloatingSubtitleService.ACTION_SET_IN_APP_FOREGROUND
+                putExtra(FloatingSubtitleService.EXTRA_IN_APP, true)
             }
-        }, 200)
+            startService(inAppIntent)
+            isListening = true
+            binding.fabMic.backgroundTintList = ContextCompat.getColorStateList(this, android.R.color.holo_red_dark)
+            binding.audioVisualizer.setListening(true)
+        } else {
+            binding.root.postDelayed({
+                if (!isListening && ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                    startListening()
+                }
+            }, 200)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (FloatingSubtitleService.isRunning) {
+            val outOfAppIntent = Intent(this, FloatingSubtitleService::class.java).apply {
+                action = FloatingSubtitleService.ACTION_SET_IN_APP_FOREGROUND
+                putExtra(FloatingSubtitleService.EXTRA_IN_APP, false)
+            }
+            startService(outOfAppIntent)
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

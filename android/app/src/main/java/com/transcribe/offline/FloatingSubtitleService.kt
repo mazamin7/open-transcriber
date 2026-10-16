@@ -71,7 +71,9 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
                 isBubbleVisibleByUser = true
                 isBubbleVisible = true
                 mainHandler.post {
-                    floatingView?.visibility = View.VISIBLE
+                    if (!isInAppForeground) {
+                        floatingView?.visibility = View.VISIBLE
+                    }
                 }
                 updateNotificationText(TranscriptSessionManager.getFullTranscript().ifEmpty { "In ascolto... Parla vicino al telefono" })
                 Toast.makeText(this, "Bolla sottotitoli ripristinata", Toast.LENGTH_SHORT).show()
@@ -85,6 +87,20 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
                 }
                 updateNotificationText(TranscriptSessionManager.getFullTranscript().ifEmpty { "In ascolto... Parla vicino al telefono" })
                 Toast.makeText(this, "Bolla nascosta. Trascrizione sempre attiva nella notifica!", Toast.LENGTH_SHORT).show()
+                return START_STICKY
+            }
+            ACTION_SET_IN_APP_FOREGROUND -> {
+                val inApp = intent.getBooleanExtra(EXTRA_IN_APP, false)
+                isInAppForeground = inApp
+                mainHandler.post {
+                    if (inApp) {
+                        floatingView?.visibility = View.GONE
+                    } else {
+                        if (isBubbleVisibleByUser && (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this@FloatingSubtitleService))) {
+                            floatingView?.visibility = View.VISIBLE
+                        }
+                    }
+                }
                 return START_STICKY
             }
         }
@@ -115,17 +131,29 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
         registerScreenStateReceiver()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-            Log.e("FloatingService", "SYSTEM_ALERT_WINDOW permission not granted")
-            Toast.makeText(this, "Permesso 'Visualizza sopra altre app' necessario.", Toast.LENGTH_LONG).show()
-            stopSelf()
-            return
+            Log.e("FloatingService", "SYSTEM_ALERT_WINDOW permission not granted - running foreground notification only")
+            isBubbleVisibleByUser = false
+            isBubbleVisible = false
+        } else {
+            initOverlayWindow()
         }
 
-        initOverlayWindow()
         initSpeechRecognition()
     }
 
     private fun buildNotification(text: String): Notification {
+        val clean = text.trim()
+        val lines = if (clean.isEmpty()) emptyList() else clean.split("\n").filter { it.isNotBlank() }
+        val latestLine = lines.lastOrNull() ?: "In ascolto... Parla vicino al telefono"
+        val recentText = if (lines.isEmpty()) {
+            "In ascolto... Parla vicino al telefono"
+        } else {
+            lines.takeLast(6).joinToString("\n")
+        }
+
+        val isIncognito = TranscriptSessionManager.isIncognitoMode()
+        val title = if (isIncognito) "🎙️ Open Transcriber 🕶️ (Incognito)" else "🎙️ Open Transcriber (Live)"
+
         val stopIntent = Intent(this, FloatingSubtitleService::class.java).apply {
             action = ACTION_STOP_SERVICE
         }
@@ -148,22 +176,30 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
         val toggleActionText = if (isBubbleVisibleByUser) "Nascondi Bolla" else "Mostra Bolla"
         val toggleActionIcon = if (isBubbleVisibleByUser) android.R.drawable.ic_menu_close_clear_cancel else android.R.drawable.ic_input_add
 
-        return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("🎙️ Open Transcriber")
-            .setContentText(text)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(latestLine)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(recentText))
             .setSmallIcon(R.mipmap.ic_launcher)
             .setColor(Color.parseColor("#00E676"))
             .setContentIntent(pendingIntent)
             .setOngoing(true)
+            .setAutoCancel(false)
             .setOnlyAlertOnce(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setSortKey("0_live_transcribe")
             .addAction(toggleActionIcon, toggleActionText, toggleBubblePending)
             .addAction(android.R.drawable.ic_menu_view, "Apri App", pendingIntent)
             .addAction(android.R.drawable.ic_menu_delete, "Termina", stopPending)
-            .build()
+
+        val notification = builder.build()
+        notification.flags = notification.flags or
+                Notification.FLAG_ONGOING_EVENT or
+                Notification.FLAG_NO_CLEAR or
+                Notification.FLAG_FOREGROUND_SERVICE
+        return notification
     }
 
     private fun startAsForegroundService() {
@@ -174,9 +210,9 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
                 val channel = NotificationChannel(
                     CHANNEL_ID,
                     "Open Transcriber - Trascrizione Live",
-                    NotificationManager.IMPORTANCE_DEFAULT
+                    NotificationManager.IMPORTANCE_HIGH
                 ).apply {
-                    description = "Mostra la trascrizione vocale in tempo reale nella barra notifiche e nel blocco schermo"
+                    description = "Mostra la trascrizione vocale in tempo reale sempre in alto nella barra notifiche e nel blocco schermo"
                     lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                     setSound(null, null)
                     enableVibration(false)
@@ -353,7 +389,6 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
             e.printStackTrace()
             Log.e("FloatingService", "Failed to add overlay window", e)
             Toast.makeText(this, "Errore apertura sottotitoli: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-            stopSelf()
         }
     }
 
@@ -380,9 +415,13 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
                 }
             }
 
-            override fun onAudioLevel(level: Float) {}
+            override fun onAudioLevel(level: Float) {
+                TranscriptSessionManager.notifyAudioLevel(level)
+            }
 
-            override fun onAcousticEvent(event: String) {}
+            override fun onAcousticEvent(event: String) {
+                TranscriptSessionManager.notifyAcousticEvent(event)
+            }
 
             override fun onError(error: String, isOfflineUnavailable: Boolean) {
                 if (isOfflineUnavailable) {
@@ -416,7 +455,7 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
                     }
                     Intent.ACTION_USER_PRESENT -> {
                         mainHandler.post {
-                            if (isBubbleVisibleByUser) {
+                            if (isBubbleVisibleByUser && !isInAppForeground) {
                                 floatingView?.visibility = View.VISIBLE
                             } else {
                                 floatingView?.visibility = View.GONE
@@ -490,7 +529,7 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
         }
         startActivity(intent)
-        stopSelf()
+        // Keep service and persistent notification active!
     }
 
     override fun onTranscriptChanged(fullText: String, interimText: String) {
@@ -513,7 +552,7 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
             }
 
             val displayText = if (interimText.isNotEmpty()) {
-                if (fullText.isNotEmpty()) "$fullText $interimText" else interimText
+                if (fullText.isNotEmpty()) "$fullText\n▶ $interimText" else "▶ $interimText"
             } else {
                 fullText
             }
@@ -555,6 +594,7 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
         super.onDestroy()
         isRunning = false
         isBubbleVisible = false
+        isInAppForeground = false
         TranscriptSessionManager.unregisterListener(this)
         if (lastPendingPartial.isNotBlank()) {
             TranscriptSessionManager.commitInterimIfPresent(this)
@@ -590,9 +630,12 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
         const val ACTION_STOP_SERVICE = "com.transcribe.offline.STOP_SERVICE"
         const val ACTION_SHOW_BUBBLE = "com.transcribe.offline.SHOW_BUBBLE"
         const val ACTION_HIDE_BUBBLE = "com.transcribe.offline.HIDE_BUBBLE"
-        const val CHANNEL_ID = "live_transcript_notification_v5"
+        const val ACTION_SET_IN_APP_FOREGROUND = "com.transcribe.offline.SET_IN_APP_FOREGROUND"
+        const val EXTRA_IN_APP = "extra_in_app"
+        const val CHANNEL_ID = "live_transcript_permanent_v6"
         var currentTranscript = ""
         var isRunning = false
         var isBubbleVisible = true
+        var isInAppForeground = false
     }
 }
