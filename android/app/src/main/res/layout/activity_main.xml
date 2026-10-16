@@ -15,7 +15,8 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="8dp"
         android:background="@color/black"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -26,8 +27,9 @@
             android:layout_height="wrap_content"
             android:text="@string/app_name"
             android:textColor="@color/white"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:singleLine="true" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -35,11 +37,12 @@
             android:text="@string/offline_badge"
             android:textColor="@color/accent_green"
             android:background="#2000E676"
-            android:textSize="10sp"
+            android:textSize="9sp"
             android:textStyle="bold"
-            android:paddingHorizontal="6dp"
-            android:paddingVertical="2dp"
-            android:layout_marginStart="8dp" />
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="1dp"
+            android:layout_marginStart="4dp"
+            android:singleLine="true" />
 
         <TextView
             android:id="@+id/btnLanguageSelector"
@@ -50,9 +53,13 @@
             android:background="@drawable/bg_event_pill"
             android:textSize="11sp"
             android:textStyle="bold"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="4dp"
-            android:layout_marginStart="8dp" />
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="3dp"
+            android:layout_marginStart="4dp"
+            android:singleLine="true"
+            android:maxLines="1"
+            android:lines="1"
+            android:ellipsize="end" />
 
         <!-- Incognito Mode / AES-256 Encrypted Storage Toggle Pill -->
         <TextView
@@ -64,16 +71,18 @@
             android:background="@drawable/bg_event_pill"
             android:textSize="11sp"
             android:textStyle="bold"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="4dp"
-            android:layout_marginStart="8dp" />
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="3dp"
+            android:layout_marginStart="4dp"
+            android:singleLine="true"
+            android:maxLines="1"
+            android:lines="1"
+            android:ellipsize="none" />
 
         <View
             android:layout_width="0dp"
             android:layout_height="1dp"
             android:layout_weight="1" />
-
-
 
         <!-- Acoustic Event Badge -->
         <TextView
@@ -83,17 +92,21 @@
             android:text="@string/sound_silence"
             android:textColor="@color/text_secondary"
             android:background="@drawable/bg_event_pill"
-            android:textSize="12sp"
+            android:textSize="11sp"
             android:textStyle="bold"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="4dp"
-            android:layout_marginEnd="12dp" />
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="3dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="6dp"
+            android:singleLine="true"
+            android:maxLines="1"
+            android:lines="1" />
 
         <!-- Google Live Transcribe Iconic Decibel Meter Bubble -->
         <com.transcribe.offline.AudioVisualizerView
             android:id="@+id/audioVisualizer"
-            android:layout_width="40dp"
-            android:layout_height="40dp" />
+            android:layout_width="30dp"
+            android:layout_height="30dp" />
 
     </LinearLayout>
 

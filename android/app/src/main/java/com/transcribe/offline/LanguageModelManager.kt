@@ -14,6 +14,7 @@ import android.speech.RecognitionSupportCallback
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import androidx.core.content.ContextCompat
+import android.net.Uri
 import java.util.Locale
 
 /**
@@ -242,29 +243,51 @@ object LanguageModelManager {
      * Opens Android System / Google Speech Services settings screen directly to download offline language models.
      */
     fun openOfflineSpeechSettings(context: Context): Boolean {
-        val intents = listOf(
-            // 1. Google Quick Search Box voice settings (opens offline speech packages)
-            Intent().setComponent(ComponentName("com.google.android.googlequicksearchbox", "com.google.android.apps.gsa.settingsui.VoiceSearchPreferences")),
-            // 2. Direct offline recognition settings action
-            Intent("com.google.android.voicesearch.intent.action.OFFLINE_RECOGNITION_SETTINGS"),
-            Intent("com.google.android.voicesearch.intent.action.VOICE_SEARCH_SETTINGS"),
-            Intent("android.speech.action.VOICE_SEARCH_SETTINGS"),
+        // Prioritize official Android system settings that work across all OEM devices
+        val candidateIntents = listOf(
+            // 1. Official Android platform Voice Input & Speech Services settings
             Intent(Settings.ACTION_VOICE_INPUT_SETTINGS),
-            Intent("com.google.android.googlequicksearchbox.action.SPEECH_SETTINGS"),
+            // 2. Android system speech / voice search settings
+            Intent("android.speech.action.VOICE_SEARCH_SETTINGS"),
+            // 3. Android System Languages and Keyboard settings
             Intent(Settings.ACTION_LOCALE_SETTINGS),
+            // 4. Dedicated Google Speech Services (com.google.android.tts) App Details
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", "com.google.android.tts", null)
+            },
+            // 5. Google App details settings
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", "com.google.android.googlequicksearchbox", null)
+            },
+            // 6. Direct Speech Recognition Settings Action
+            Intent("com.google.android.voicesearch.intent.action.OFFLINE_RECOGNITION_SETTINGS"),
+            // 7. General Android System Settings
             Intent(Settings.ACTION_SETTINGS)
         )
 
-        for (intent in intents) {
+        for (intent in candidateIntents) {
             try {
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(intent)
-                return true
+                if (intent.resolveActivity(context.packageManager) != null) {
+                    context.startActivity(intent)
+                    return true
+                }
             } catch (e: Exception) {
                 // Try next candidate
             }
         }
-        return false
+
+        // Direct fallback: start Settings.ACTION_SETTINGS unconditionally
+        return try {
+            val fallback = Intent(Settings.ACTION_SETTINGS).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(fallback)
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
     }
 
     /**

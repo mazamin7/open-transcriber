@@ -57,19 +57,45 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
     private var pendingIntent: PendingIntent? = null
     private var lastNotificationTime = 0L
     private var screenStateReceiver: BroadcastReceiver? = null
+    private var isBubbleVisibleByUser = true
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP_SERVICE) {
-            stopSelf()
-            return START_NOT_STICKY
+        when (intent?.action) {
+            ACTION_STOP_SERVICE -> {
+                stopSelf()
+                return START_NOT_STICKY
+            }
+            ACTION_SHOW_BUBBLE -> {
+                isBubbleVisibleByUser = true
+                isBubbleVisible = true
+                mainHandler.post {
+                    floatingView?.visibility = View.VISIBLE
+                }
+                updateNotificationText(TranscriptSessionManager.getFullTranscript().ifEmpty { "In ascolto... Parla vicino al telefono" })
+                Toast.makeText(this, "Bolla sottotitoli ripristinata", Toast.LENGTH_SHORT).show()
+                return START_STICKY
+            }
+            ACTION_HIDE_BUBBLE -> {
+                isBubbleVisibleByUser = false
+                isBubbleVisible = false
+                mainHandler.post {
+                    floatingView?.visibility = View.GONE
+                }
+                updateNotificationText(TranscriptSessionManager.getFullTranscript().ifEmpty { "In ascolto... Parla vicino al telefono" })
+                Toast.makeText(this, "Bolla nascosta. Trascrizione sempre attiva nella notifica!", Toast.LENGTH_SHORT).show()
+                return START_STICKY
+            }
         }
         return START_STICKY
     }
 
     override fun onCreate() {
         super.onCreate()
+        isRunning = true
+        isBubbleVisibleByUser = true
+        isBubbleVisible = true
         customWordManager = CustomWordManager(this)
 
         // Initialize shared unified transcript session and register for real-time updates
@@ -99,6 +125,47 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
         initSpeechRecognition()
     }
 
+    private fun buildNotification(text: String): Notification {
+        val stopIntent = Intent(this, FloatingSubtitleService::class.java).apply {
+            action = ACTION_STOP_SERVICE
+        }
+        val stopPending = PendingIntent.getService(
+            this,
+            1,
+            stopIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val toggleBubbleIntent = Intent(this, FloatingSubtitleService::class.java).apply {
+            action = if (isBubbleVisibleByUser) ACTION_HIDE_BUBBLE else ACTION_SHOW_BUBBLE
+        }
+        val toggleBubblePending = PendingIntent.getService(
+            this,
+            2,
+            toggleBubbleIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val toggleActionText = if (isBubbleVisibleByUser) "Nascondi Bolla" else "Mostra Bolla"
+        val toggleActionIcon = if (isBubbleVisibleByUser) android.R.drawable.ic_menu_close_clear_cancel else android.R.drawable.ic_input_add
+
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("🎙️ Open Transcriber")
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setColor(Color.parseColor("#00E676"))
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .addAction(toggleActionIcon, toggleActionText, toggleBubblePending)
+            .addAction(android.R.drawable.ic_menu_view, "Apri App", pendingIntent)
+            .addAction(android.R.drawable.ic_menu_delete, "Termina", stopPending)
+            .build()
+    }
+
     private fun startAsForegroundService() {
         try {
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -106,13 +173,14 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val channel = NotificationChannel(
                     CHANNEL_ID,
-                    "Open Transcriber - Sottotitoli",
+                    "Open Transcriber - Trascrizione Live",
                     NotificationManager.IMPORTANCE_DEFAULT
                 ).apply {
-                    description = "Mostra i sottotitoli in tempo reale sopra le notifiche e nel blocco schermo"
+                    description = "Mostra la trascrizione vocale in tempo reale nella barra notifiche e nel blocco schermo"
                     lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                     setSound(null, null)
                     enableVibration(false)
+                    setShowBadge(true)
                 }
                 notificationManager.createNotificationChannel(channel)
             }
@@ -128,30 +196,7 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
             )
             this.pendingIntent = pending
 
-            val stopIntent = Intent(this, FloatingSubtitleService::class.java).apply {
-                action = ACTION_STOP_SERVICE
-            }
-            val stopPending = PendingIntent.getService(
-                this,
-                1,
-                stopIntent,
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            )
-
-            val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("🎙️ Open Transcriber")
-                .setContentText("In ascolto... Parla vicino al telefono")
-                .setStyle(NotificationCompat.BigTextStyle().bigText("In ascolto... Parla vicino al telefono"))
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setColor(Color.parseColor("#00E676"))
-                .setContentIntent(pending)
-                .setOngoing(true)
-                .setOnlyAlertOnce(true)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Chiudi", stopPending)
-                .addAction(android.R.drawable.ic_menu_view, "Apri App", pending)
-                .build()
+            val notification = buildNotification("In ascolto... Parla vicino al telefono")
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 startForeground(
@@ -173,31 +218,7 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
         lastNotificationTime = now
 
         try {
-            val stopIntent = Intent(this, FloatingSubtitleService::class.java).apply {
-                action = ACTION_STOP_SERVICE
-            }
-            val stopPending = PendingIntent.getService(
-                this,
-                1,
-                stopIntent,
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            )
-
-            val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("🎙️ Open Transcriber")
-                .setContentText(text)
-                .setStyle(NotificationCompat.BigTextStyle().bigText(text))
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setColor(Color.parseColor("#00E676"))
-                .setContentIntent(pendingIntent)
-                .setOngoing(true)
-                .setOnlyAlertOnce(true)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Chiudi", stopPending)
-                .addAction(android.R.drawable.ic_menu_view, "Apri App", pendingIntent)
-                .build()
-
+            val notification = buildNotification(text)
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.notify(NOTIFICATION_ID, notification)
         } catch (e: Exception) {
@@ -240,7 +261,11 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
 
             val btnClose = floatingView?.findViewById<ImageButton>(R.id.btnCloseOverlay)
             btnClose?.setOnClickListener {
-                stopSelf()
+                isBubbleVisibleByUser = false
+                isBubbleVisible = false
+                floatingView?.visibility = View.GONE
+                updateNotificationText(TranscriptSessionManager.getFullTranscript().ifEmpty { "In ascolto... Parla vicino al telefono" })
+                Toast.makeText(this, "Bolla nascosta. Trascrizione sempre attiva nella notifica!", Toast.LENGTH_SHORT).show()
             }
 
             val btnMaximize = floatingView?.findViewById<ImageButton>(R.id.btnMaximizeApp)
@@ -391,7 +416,11 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
                     }
                     Intent.ACTION_USER_PRESENT -> {
                         mainHandler.post {
-                            floatingView?.visibility = View.VISIBLE
+                            if (isBubbleVisibleByUser) {
+                                floatingView?.visibility = View.VISIBLE
+                            } else {
+                                floatingView?.visibility = View.GONE
+                            }
                         }
                     }
                 }
@@ -524,6 +553,8 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
 
     override fun onDestroy() {
         super.onDestroy()
+        isRunning = false
+        isBubbleVisible = false
         TranscriptSessionManager.unregisterListener(this)
         if (lastPendingPartial.isNotBlank()) {
             TranscriptSessionManager.commitInterimIfPresent(this)
@@ -556,8 +587,12 @@ class FloatingSubtitleService : Service(), TranscriptSessionManager.Listener {
 
     companion object {
         private const val NOTIFICATION_ID = 2001
-        private const val ACTION_STOP_SERVICE = "com.transcribe.offline.STOP_SERVICE"
-        const val CHANNEL_ID = "floating_subtitles_live_v3"
+        const val ACTION_STOP_SERVICE = "com.transcribe.offline.STOP_SERVICE"
+        const val ACTION_SHOW_BUBBLE = "com.transcribe.offline.SHOW_BUBBLE"
+        const val ACTION_HIDE_BUBBLE = "com.transcribe.offline.HIDE_BUBBLE"
+        const val CHANNEL_ID = "live_transcript_notification_v5"
         var currentTranscript = ""
+        var isRunning = false
+        var isBubbleVisible = true
     }
 }

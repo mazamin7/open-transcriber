@@ -437,7 +437,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
     private fun updateLanguageBadge() {
         val current = installedLanguages.find { it.code.equals(selectedLanguage, ignoreCase = true) }
             ?: LanguageModelManager.getLanguageInfo(selectedLanguage)
-        binding.btnLanguageSelector.text = "${current.flag} ${current.displayName}"
+        val shortName = Locale.forLanguageTag(current.code).displayLanguage.replaceFirstChar { it.uppercase() }
+        binding.btnLanguageSelector.text = "${current.flag} ${shortName.ifBlank { current.displayName }}"
     }
 
     private fun refreshInstalledLanguages() {
@@ -581,18 +582,13 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
         }
 
         btnOpenSettings?.setOnClickListener {
-            AlertDialog.Builder(this)
-                .setTitle("Scarica Nuove Lingue Offline 📥")
-                .setMessage("Ti reindirizzo alle impostazioni vocali di Android per scaricare i pacchetti offline:\n\n1. Tocca 'Riconoscimento vocale offline'.\n2. Nella scheda 'TUTTO', tocca la lingua che vuoi aggiungere (es. Inglese, Spagnolo, Francese, Tedesco, ecc.) e premi Scarica.\n3. Al termine del download, riapri Open Transcriber: la nuova lingua apparirà automaticamente pronta all'uso!")
-                .setPositiveButton("Apri Impostazioni") { _, _ ->
-                    val opened = LanguageModelManager.openOfflineSpeechSettings(this)
-                    if (!opened) {
-                        Toast.makeText(this, "Apri Impostazioni di sistema > Google > Voce > Riconoscimento vocale offline", Toast.LENGTH_LONG).show()
-                    }
-                    dialog.dismiss()
-                }
-                .setNegativeButton("Annulla", null)
-                .show()
+            val opened = LanguageModelManager.openOfflineSpeechSettings(this)
+            if (opened) {
+                Toast.makeText(this, "Nelle impostazioni: tocca 'Riconoscimento vocale offline' (o ⚙️) per scaricare le lingue desiderate.", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(this, "Apri Impostazioni di sistema > Voce > Riconoscimento vocale offline", Toast.LENGTH_LONG).show()
+            }
+            dialog.dismiss()
         }
 
         btnClose?.setOnClickListener { dialog.dismiss() }
@@ -811,7 +807,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
     private fun startFloatingSubtitles() {
         isLaunchingFloating = true
         stopListening()
-        val intent = Intent(this, FloatingSubtitleService::class.java)
+        val intent = Intent(this, FloatingSubtitleService::class.java).apply {
+            action = FloatingSubtitleService.ACTION_SHOW_BUBBLE
+        }
         try {
             ContextCompat.startForegroundService(this, intent)
             Toast.makeText(this, "Sottotitoli flottanti attivati sopra lo schermo!", Toast.LENGTH_SHORT).show()
