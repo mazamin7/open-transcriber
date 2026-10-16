@@ -146,11 +146,13 @@ object TranscriptSessionManager {
             appContext = context.applicationContext
         }
 
+        val formatted = trimmed.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+
         val builder = getActiveBuilder()
         if (builder.isNotEmpty() && !builder.endsWith("\n")) {
             builder.append("\n")
         }
-        builder.append(trimmed)
+        builder.append(formatted)
         lastInterimText = ""
 
         if (!isIncognito) {
