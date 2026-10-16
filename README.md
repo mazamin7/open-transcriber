@@ -13,7 +13,7 @@
 | **Modalità Incognito 🕶️** | Attivabile con un tocco: separazione e isolamento totale dalla memoria persistente (i due buffer non si mischiano), watermark trasparente al centro dello schermo, zero scritture su disco (RAM volatile) e blocco screenshot/registrazioni (`FLAG_SECURE`). |
 | **Flusso Unificato App & Bolla** | Nessuna perdita di testo passando tra l'app a schermo intero e la bolla fluttuante: cronologia continua e sincronizzata bidirezionalmente in tempo reale (`TranscriptSessionManager`). |
 | **Motore Vocale Neurale On-Device** | Sfrutta il motore neurale on-device di Android (`SpeechRecognizer.createOnDeviceSpeechRecognizer`). |
-| **Selettore Lingua Dinamico** | Scelta rapida della lingua con pill dedicata in alto: Italiano 🇮🇹, English (US) 🇺🇸, English (UK) 🇬🇧, Español 🇪🇸, Français 🇫🇷, Deutsch 🇩🇪, Português 🇧🇷, Русский 🇷🇺, 中文 🇨🇳, 日本語 🇯🇵. |
+| **Rilevamento Dinamico Lingue & Download Moduli** | Nessuna lista fissa o preimpostata: l'app legge in tempo reale i moduli vocali effettivamente installati e pronti sul dispositivo (`SpeechRecognizer.checkRecognitionSupport`) e permette di scaricarne di nuovi (Inglese, Spagnolo, Francese, ecc.) aprendo direttamente le impostazioni vocali di Android (`LanguageModelManager`). |
 | **Sottotitoli Fluttuanti Sovrapposti** | Finestra trasparente e trascinabile che mostra i sottotitoli in tempo reale sopra WhatsApp e qualsiasi altra app (`FloatingSubtitleService`). |
 | **Doppio Comportamento Blocco Schermo** | Gestione intelligente a due livelli sul blocco schermo (App a schermo intero vs Bolla sottotitoli). |
 | **Parole Personalizzate (Contextual Biasing)** | Dizionario personalizzato: i termini aggiunti vengono iniettati direttamente nel decoder neurale (`EXTRA_BIASING_STRINGS`), migliorando il riconoscimento di nomi propri e termini tecnici. |
@@ -80,12 +80,14 @@ open-transcriber/
     │       │   ├── FloatingSubtitleService.kt    # Servizio overlay e notifica live su blocco schermo
     │       │   ├── TranscriptSessionManager.kt   # Gestore unificato flusso testo e persistenza sincrona
     │       │   ├── CryptoManager.kt              # Crittografia hardware AES-256-GCM (Android KeyStore / TEE)
+    │       │   ├── LanguageModelManager.kt       # Rilevamento dinamico modelli vocali offline e gestione download
     │       │   ├── OnDeviceSystemSpeechService.kt# Wrapper On-Device SpeechRecognizer
     │       │   ├── CustomWordManager.kt          # Gestione dizionario parole personalizzate
     │       │   └── AudioVisualizerView.kt        # Indicatore visivo decibel / volume
     │       └── res/
     │           ├── layout/activity_main.xml      # Layout principale con pill lingua e pill Incognito
     │           ├── layout/layout_floating_subtitle.xml # Layout overlay sottotitoli con scroll continuo
+    │           ├── layout/dialog_language_selector.xml # Dialog selezione lingue rilevate e aggiunta pacchetti
     │           └── layout/dialog_dictionary.xml  # Dialog aggiunta/rimozione parole
     ├── build.gradle
     └── gradlew.bat

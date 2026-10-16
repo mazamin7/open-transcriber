@@ -50,20 +50,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
     private val RECORD_AUDIO_REQUEST_CODE = 101
     private var lastPartialWordCount = 0
 
-    data class LanguageOption(val code: String, val displayName: String, val flag: String)
-
-    private val supportedLanguages = listOf(
-        LanguageOption("it-IT", "Italiano", "🇮🇹"),
-        LanguageOption("en-US", "English (US)", "🇺🇸"),
-        LanguageOption("en-GB", "English (UK)", "🇬🇧"),
-        LanguageOption("es-ES", "Español", "🇪🇸"),
-        LanguageOption("fr-FR", "Français", "🇫🇷"),
-        LanguageOption("de-DE", "Deutsch", "🇩🇪"),
-        LanguageOption("pt-BR", "Português", "🇧🇷"),
-        LanguageOption("ru-RU", "Русский", "🇷🇺"),
-        LanguageOption("zh-CN", "中文", "🇨🇳"),
-        LanguageOption("ja-JP", "日本語", "🇯🇵")
-    )
+    private var installedLanguages = mutableListOf<LanguageModelManager.LanguageInfo>()
     private var selectedLanguage = "it-IT"
 
     // Quick Response Chips for Deaf Communication in Italian
@@ -94,10 +81,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
         // Ensure notification channel is registered in system settings
         createNotificationChannelIfNeeded()
 
-        // Load saved language or default to it-IT
+        // Load detected installed languages from cache and start background scan
+        installedLanguages = LanguageModelManager.getCachedInstalledLanguages(this).toMutableList()
         val prefs = getSharedPreferences("app_language_prefs", Context.MODE_PRIVATE)
         selectedLanguage = prefs.getString("selected_language", "it-IT") ?: "it-IT"
         updateLanguageBadge()
+        refreshInstalledLanguages()
 
         // Keep screen awake continuously during live conversations
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -356,19 +345,16 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
     }
 
     private fun showOfflineSetupDialog(errorMsg: String) {
-        val currentLangName = supportedLanguages.find { it.code.equals(selectedLanguage, ignoreCase = true) }?.displayName ?: selectedLanguage
+        val current = installedLanguages.find { it.code.equals(selectedLanguage, ignoreCase = true) }
+            ?: LanguageModelManager.getLanguageInfo(selectedLanguage)
+        val note = if (errorMsg.isNotBlank()) "\n\n$errorMsg" else ""
         AlertDialog.Builder(this)
-            .setTitle("Pacchetto Vocale Offline Google")
-            .setMessage("$errorMsg\n\nPer usare il riconoscimento offline senza connessione internet, scarica il pacchetto '$currentLangName' ($selectedLanguage) nelle impostazioni vocali del telefono.\n\nVuoi aprire le impostazioni?")
-            .setPositiveButton("Impostazioni Voce") { _, _ ->
-                try {
-                    startActivity(Intent(Settings.ACTION_VOICE_INPUT_SETTINGS))
-                } catch (e: Exception) {
-                    try {
-                        startActivity(Intent("com.google.android.voicesearch.intent.action.OFFLINE_RECOGNITION"))
-                    } catch (e2: Exception) {
-                        Toast.makeText(this, "Apri Impostazioni > Google > Voce > Riconoscimento vocale offline", Toast.LENGTH_LONG).show()
-                    }
+            .setTitle("Modulo Vocale Offline Mancante")
+            .setMessage("Il pacchetto offline per ${current.flag} ${current.displayName} (${current.code}) non è ancora installato sul dispositivo.$note\n\nPer usarlo senza connessione internet, scarica il modulo nelle impostazioni vocali del telefono.")
+            .setPositiveButton("Scarica Pacchetto") { _, _ ->
+                val opened = LanguageModelManager.openOfflineSpeechSettings(this)
+                if (!opened) {
+                    Toast.makeText(this, "Apri Impostazioni di sistema > Voce > Riconoscimento vocale offline", Toast.LENGTH_LONG).show()
                 }
             }
             .setNegativeButton("Chiudi", null)
@@ -449,33 +435,168 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
     }
 
     private fun updateLanguageBadge() {
-        val current = supportedLanguages.find { it.code.equals(selectedLanguage, ignoreCase = true) }
-            ?: LanguageOption(selectedLanguage, selectedLanguage, "🌐")
+        val current = installedLanguages.find { it.code.equals(selectedLanguage, ignoreCase = true) }
+            ?: LanguageModelManager.getLanguageInfo(selectedLanguage)
         binding.btnLanguageSelector.text = "${current.flag} ${current.displayName}"
     }
 
-    private fun showLanguageSelectorDialog() {
-        val options = supportedLanguages.map { "${it.flag}  ${it.displayName} (${it.code})" }.toTypedArray()
-        val currentIndex = supportedLanguages.indexOfFirst { it.code.equals(selectedLanguage, ignoreCase = true) }.coerceAtLeast(0)
-
-        AlertDialog.Builder(this)
-            .setTitle("Scegli Lingua / Language")
-            .setSingleChoiceItems(options, currentIndex) { dialog, which ->
-                val chosen = supportedLanguages[which]
-                selectedLanguage = chosen.code
-                getSharedPreferences("app_language_prefs", Context.MODE_PRIVATE)
-                    .edit()
-                    .putString("selected_language", selectedLanguage)
-                    .apply()
-
+    private fun refreshInstalledLanguages() {
+        LanguageModelManager.detectInstalledLanguages(this) { installed, _ ->
+            if (installed.isNotEmpty()) {
+                installedLanguages = installed.toMutableList()
                 updateLanguageBadge()
-                updateTtsLanguage(selectedLanguage)
-                systemSpeechService?.setLanguage(selectedLanguage)
-                Toast.makeText(this, "Lingua: ${chosen.flag} ${chosen.displayName}", Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
             }
-            .setNegativeButton("Annulla", null)
-            .show()
+        }
+    }
+
+    private fun showLanguageSelectorDialog() {
+        val dialog = BottomSheetDialog(this)
+        val dialogView = layoutInflater.inflate(R.layout.dialog_language_selector, null)
+        dialog.setContentView(dialogView)
+
+        val btnClose = dialogView.findViewById<android.widget.ImageButton>(R.id.btnCloseLanguageDialog)
+        val btnOpenSettings = dialogView.findViewById<MaterialButton>(R.id.btnOpenSpeechSettings)
+        val layoutScanning = dialogView.findViewById<android.widget.LinearLayout>(R.id.layoutScanning)
+        val container = dialogView.findViewById<android.widget.LinearLayout>(R.id.installedLanguagesContainer)
+
+        fun renderLanguages(installed: List<LanguageModelManager.LanguageInfo>) {
+            container?.removeAllViews()
+            if (installed.isEmpty()) {
+                val tvEmpty = android.widget.TextView(this).apply {
+                    text = "Nessun modulo offline rilevato.\nTocca il pulsante in basso per scaricarne uno dalle impostazioni di sistema."
+                    setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                    textSize = 14f
+                    setPadding(16, 24, 16, 24)
+                }
+                container?.addView(tvEmpty)
+                return
+            }
+
+            for (lang in installed) {
+                val isSelected = lang.code.equals(selectedLanguage, ignoreCase = true)
+                val row = android.widget.LinearLayout(this).apply {
+                    orientation = android.widget.LinearLayout.HORIZONTAL
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                    setPadding(24, 20, 24, 20)
+                    background = ContextCompat.getDrawable(
+                        context,
+                        if (isSelected) R.drawable.bg_event_pill else android.R.color.transparent
+                    )
+                    isClickable = true
+                    isFocusable = true
+                }
+
+                // Flag
+                val tvFlag = android.widget.TextView(this).apply {
+                    text = lang.flag
+                    textSize = 22f
+                    layoutParams = android.widget.LinearLayout.LayoutParams(
+                        android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                        android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { marginEnd = 16 }
+                }
+                row.addView(tvFlag)
+
+                // Name and code column
+                val col = android.widget.LinearLayout(this).apply {
+                    orientation = android.widget.LinearLayout.VERTICAL
+                    layoutParams = android.widget.LinearLayout.LayoutParams(
+                        0,
+                        android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                        1f
+                    )
+                }
+                val tvName = android.widget.TextView(this).apply {
+                    text = lang.displayName
+                    setTextColor(ContextCompat.getColor(context, R.color.white))
+                    textSize = 15f
+                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                }
+                val tvCode = android.widget.TextView(this).apply {
+                    text = "${lang.code} • Modulo Offline"
+                    setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                    textSize = 11f
+                }
+                col.addView(tvName)
+                col.addView(tvCode)
+                row.addView(col)
+
+                // Status Badge
+                val tvBadge = android.widget.TextView(this).apply {
+                    text = if (isSelected) "ATTIVA ✓" else "Pronta"
+                    setTextColor(
+                        if (isSelected) ContextCompat.getColor(context, R.color.accent_green)
+                        else ContextCompat.getColor(context, R.color.text_secondary)
+                    )
+                    textSize = 11f
+                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                    setPadding(12, 6, 12, 6)
+                }
+                row.addView(tvBadge)
+
+                row.setOnClickListener {
+                    selectedLanguage = lang.code
+                    getSharedPreferences("app_language_prefs", Context.MODE_PRIVATE)
+                        .edit()
+                        .putString("selected_language", selectedLanguage)
+                        .apply()
+
+                    updateLanguageBadge()
+                    updateTtsLanguage(selectedLanguage)
+                    systemSpeechService?.setLanguage(selectedLanguage)
+
+                    if (isListening) {
+                        stopListening()
+                        binding.root.postDelayed({ startListening() }, 150)
+                    }
+
+                    Toast.makeText(this@MainActivity, "Lingua attiva: ${lang.flag} ${lang.displayName}", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
+                }
+
+                container?.addView(row)
+
+                // Divider
+                val divider = View(this).apply {
+                    layoutParams = android.widget.LinearLayout.LayoutParams(
+                        android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                        1
+                    ).apply { setMargins(16, 0, 16, 0) }
+                    setBackgroundColor(ContextCompat.getColor(context, R.color.surface_border))
+                }
+                container?.addView(divider)
+            }
+        }
+
+        renderLanguages(installedLanguages)
+
+        layoutScanning?.visibility = View.VISIBLE
+        LanguageModelManager.detectInstalledLanguages(this) { installed, _ ->
+            layoutScanning?.visibility = View.GONE
+            if (installed.isNotEmpty()) {
+                installedLanguages = installed.toMutableList()
+                renderLanguages(installedLanguages)
+                updateLanguageBadge()
+            }
+        }
+
+        btnOpenSettings?.setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle("Scarica Nuove Lingue Offline 📥")
+                .setMessage("Ti reindirizzo alle impostazioni vocali di Android per scaricare i pacchetti offline:\n\n1. Tocca 'Riconoscimento vocale offline'.\n2. Nella scheda 'TUTTO', tocca la lingua che vuoi aggiungere (es. Inglese, Spagnolo, Francese, Tedesco, ecc.) e premi Scarica.\n3. Al termine del download, riapri Open Transcriber: la nuova lingua apparirà automaticamente pronta all'uso!")
+                .setPositiveButton("Apri Impostazioni") { _, _ ->
+                    val opened = LanguageModelManager.openOfflineSpeechSettings(this)
+                    if (!opened) {
+                        Toast.makeText(this, "Apri Impostazioni di sistema > Google > Voce > Riconoscimento vocale offline", Toast.LENGTH_LONG).show()
+                    }
+                    dialog.dismiss()
+                }
+                .setNegativeButton("Annulla", null)
+                .show()
+        }
+
+        btnClose?.setOnClickListener { dialog.dismiss() }
+        dialog.show()
     }
 
     private fun updateTtsLanguage(langTag: String) {
@@ -774,6 +895,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Transcrip
 
     override fun onResume() {
         super.onResume()
+        refreshInstalledLanguages()
         if (isLaunchingFloating) {
             isLaunchingFloating = false
             return

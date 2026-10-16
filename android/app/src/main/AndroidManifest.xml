@@ -28,6 +28,14 @@
         <intent>
             <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
         </intent>
+        <intent>
+            <action android:name="android.speech.action.GET_LANGUAGE_DETAILS" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.action.VOICE_SEARCH_SETTINGS" />
+        </intent>
+        <package android:name="com.google.android.googlequicksearchbox" />
+        <package android:name="com.google.android.tts" />
     </queries>
 
     <application

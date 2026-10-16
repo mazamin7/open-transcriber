@@ -157,7 +157,11 @@ class OnDeviceSystemSpeechService(
             override fun onError(error: Int) {
                 val isOfflineMissing = (error == SpeechRecognizer.ERROR_SERVER_DISCONNECTED ||
                         error == SpeechRecognizer.ERROR_NETWORK ||
-                        error == SpeechRecognizer.ERROR_SERVER)
+                        error == SpeechRecognizer.ERROR_SERVER ||
+                        (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                            (error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED ||
+                             error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE ||
+                             error == SpeechRecognizer.ERROR_CANNOT_CHECK_SUPPORT)))
 
                 when (error) {
                     SpeechRecognizer.ERROR_NO_MATCH,
